@@ -1,0 +1,51 @@
+{
+  "name": "autoplanner-backend",
+  "version": "1.0.0",
+  "description": "AutoPlanner API server",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "migrate": "tsx src/migrations/run.ts",
+    "seed": "tsx src/migrations/seed.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
+    "@sparticuz/chromium-min": "^143.0.4",
+    "@types/multer": "^2.1.0",
+    "@types/nodemailer": "^7.0.11",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^8.3.1",
+    "google-auth-library": "^10.6.2",
+    "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.12.0",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.4",
+    "pdf-parse": "^1.1.1",
+    "pg": "^8.13.0",
+    "puppeteer-core": "^24.40.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "resend": "^6.9.4",
+    "sharp": "^0.34.5",
+    "studentvue": "^2.0.4",
+    "web-push": "^3.6.7",
+    "winston": "^3.14.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.7.0",
+    "@types/pg": "^8.11.10",
+    "@types/web-push": "^3.6.4",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2"
+  }
+}
