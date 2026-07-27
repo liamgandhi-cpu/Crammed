@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type ScheduleItem, type NewScheduleItem } from "@/lib/api";
+import { useFocusRestore } from "@/hooks/useFocusRestore";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -33,6 +34,7 @@ export default function EditItemModal({ item, onClose, onSave }: Props) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const handleCloseAutoFocus = useFocusRestore(true);
 
   const handleSave = async () => {
     if (!title.trim()) { setError("Title is required."); return; }
@@ -69,6 +71,7 @@ export default function EditItemModal({ item, onClose, onSave }: Props) {
 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
           <Dialog.Content
+            onCloseAutoFocus={handleCloseAutoFocus}
             aria-describedby={undefined}
             className="pointer-events-auto bg-card border border-border rounded-xl w-full max-w-md flex flex-col animate-fade-slide-up"
           >

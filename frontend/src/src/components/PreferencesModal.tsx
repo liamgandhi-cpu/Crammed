@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api, type UserPreferences, type NotificationPreferences } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useFocusRestore } from "@/hooks/useFocusRestore";
 
 interface Props {
   isOpen: boolean;
@@ -64,6 +65,7 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
   const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences>(NOTIF_DEFAULTS);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const handleCloseAutoFocus = useFocusRestore(isOpen);
 
   useEffect(() => {
     if (!isOpen || !token) return;
@@ -103,6 +105,7 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
           <Dialog.Content
+            onCloseAutoFocus={handleCloseAutoFocus}
             aria-describedby={undefined}
             className="pointer-events-auto bg-card border border-border rounded-xl w-full max-w-lg flex flex-col animate-fade-slide-up"
           >

@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useFocusRestore } from "@/hooks/useFocusRestore";
 import { useScrapeJob } from "@/context/ScrapeJobContext";
 
 interface Props {
@@ -332,6 +333,7 @@ function IonTab({ onImported }: { onImported: () => void }) {
 
 export default function ConnectAccountModal({ isOpen, onClose, onImported }: Props) {
   const [tab, setTab] = useState<Tab>("studentvue");
+  const handleCloseAutoFocus = useFocusRestore(isOpen);
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(next) => { if (!next) onClose(); }}>
@@ -339,7 +341,9 @@ export default function ConnectAccountModal({ isOpen, onClose, onImported }: Pro
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 animate-fade-in" />
 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-          <Dialog.Content className="pointer-events-auto bg-card border border-border rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col animate-fade-slide-up">
+          <Dialog.Content
+            onCloseAutoFocus={handleCloseAutoFocus}
+            className="pointer-events-auto bg-card border border-border rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col animate-fade-slide-up">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-border">
               <div>

@@ -4,6 +4,7 @@ import { X, Sparkles, Save, Loader2, AlertCircle, MapPin, Clock, Plus } from "lu
 import { Button } from "@/components/ui/button";
 import { api, type NewScheduleItem, type ScheduleItem, type Category, ApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useFocusRestore } from "@/hooks/useFocusRestore";
 
 interface Props {
   isOpen: boolean;
@@ -212,6 +213,8 @@ export default function ScheduleInputModal({ isOpen, onClose, onSaved }: Props) 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleCloseAutoFocus = useFocusRestore(isOpen);
+
   // Reset on open
   useEffect(() => {
     if (isOpen) {
@@ -267,7 +270,9 @@ export default function ScheduleInputModal({ isOpen, onClose, onSaved }: Props) 
 
         {/* Panel */}
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-          <Dialog.Content className="pointer-events-auto bg-card border border-border rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-fade-slide-up">
+          <Dialog.Content
+            onCloseAutoFocus={handleCloseAutoFocus}
+            className="pointer-events-auto bg-card border border-border rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-fade-slide-up">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-border">
               <div className="flex items-center gap-3">

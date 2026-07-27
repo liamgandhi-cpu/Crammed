@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { useFocusRestore } from "@/hooks/useFocusRestore";
 import { api, type ParsedScheduleItem } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────
@@ -214,6 +215,7 @@ export default function FileImportModal({ isOpen, onClose, onImported }: Props) 
   const [importedCount, setImportedCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const processMsgTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const handleCloseAutoFocus = useFocusRestore(isOpen);
 
   const handleClose = useCallback(() => {
     if (state === "processing") return; // don't close during processing
@@ -352,6 +354,7 @@ export default function FileImportModal({ isOpen, onClose, onImported }: Props) 
         {/* Modal */}
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
           <Dialog.Content
+            onCloseAutoFocus={handleCloseAutoFocus}
             // Processing must not be interrupted. handleClose already refuses to
             // close in that state; block the dismiss gestures so Radix does too.
             onEscapeKeyDown={(e) => { if (state === "processing") e.preventDefault(); }}
