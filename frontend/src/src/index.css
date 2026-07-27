@@ -22,6 +22,14 @@
     --input: 220 13% 14%;
     --ring: 25 95% 40%;
     --radius: 0.625rem;
+
+    /* Surface tint ladder — the primary depth cue on a dark UI.
+       Higher planes are LIGHTER; shadow alone can't separate them
+       against a near-black page. Pairs with shadow-elev-* in
+       tailwind.config.js. */
+    --surface-1: 220 16% 8%;    /* = --card, resting */
+    --surface-2: 220 15% 10%;   /* raised: cards, popovers */
+    --surface-3: 220 14% 12.5%; /* hovered / focused */
   }
 
   * {
@@ -96,6 +104,64 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Depth ─────────────────────────────────────────────────────────
+   Two rules govern everything below:
+   1. Focus rings use `outline`, never `box-shadow`. A transform creates
+      a stacking context, and a box-shadow ring gets clipped by the
+      element's own `overflow: hidden`; an outline escapes it.
+   2. Every transform is motion-gated. Shadow, tint, highlight and glow
+      survive `prefers-reduced-motion` — reduced-motion users still get
+      the depth, they just don't get the movement.
+   ------------------------------------------------------------------ */
+
+/* Tilt-on-interaction surface. The parent supplies the perspective. */
+.depth-tilt {
+  transform-style: preserve-3d;
+  transition: transform 220ms cubic-bezier(0, 0, 0.2, 1),
+              box-shadow 220ms cubic-bezier(0, 0, 0.2, 1),
+              background-color 220ms cubic-bezier(0, 0, 0.2, 1),
+              filter 220ms cubic-bezier(0, 0, 0.2, 1);
+}
+.depth-tilt:hover,
+.depth-tilt:focus-visible {
+  transform: translateY(-3px) rotateX(6deg) scale(1.015);
+}
+.depth-stage { perspective: 900px; }
+
+/* Dialog surface: top-lit elevation plus a low primary bloom, so the
+   panel reads as lit rather than merely stacked. */
+.dialog-surface {
+  box-shadow:
+    0 10px 20px rgba(0, 0, 0, 0.55),
+    0 30px 70px rgba(0, 0, 0, 0.62),
+    0 0 60px -14px hsl(var(--primary) / 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+.dialog-stage { perspective: 1100px; }
+
+@keyframes dialogIn {
+  from { opacity: 0; transform: translateY(10px) rotateX(-7deg) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-dialog-in {
+  animation: dialogIn 280ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .depth-tilt,
+  .depth-tilt:hover,
+  .depth-tilt:focus-visible {
+    transform: none;
+    transition: box-shadow 1ms, background-color 1ms;
+  }
+  .animate-dialog-in,
+  .animate-fade-slide-up,
+  .animate-fade-in,
+  .schedule-block {
+    animation: none;
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.2s ease both;
 }
@@ -105,5 +171,10 @@
 }
 
 .schedule-block {
-  animation: fadeSlideUp 0.3s ease both;
+  /* `backwards`, not `both`. With `both` the fill keeps the final keyframe's
+     `transform: translateY(0)` applied forever, and an animation-origin
+     declaration outranks normal ones — so every later transform on this
+     element (the hover/focus tilt, and the pre-existing active:scale) was
+     silently dead. `backwards` still suppresses the pre-delay flash. */
+  animation: fadeSlideUp 0.3s ease backwards;
 }

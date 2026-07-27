@@ -165,8 +165,16 @@ function ScheduleBlock({ item, index, onSelect }: {
   const height = blockHeight(item.start_time, item.end_time);
 
   return (
-    <div
-      className="schedule-block absolute left-0.5 right-0.5 rounded-lg px-1.5 py-1 cursor-pointer overflow-hidden border transition-all hover:brightness-125 hover:z-10 active:scale-[0.98]"
+    <button
+      type="button"
+      /* Was a <div onClick>: not focusable, not keyboard-operable, so the
+         primary interaction on this screen was mouse-only. It also had no
+         focus state for the depth treatment to respond to. */
+      /* Focus ring is an outline, not Tailwind's ring-* (a box-shadow):
+         this element sets `overflow: hidden` and sits inside transformed,
+         scrollable ancestors, where a shadow-drawn ring is liable to be
+         clipped. outline + outline-offset survives both. */
+      className="schedule-block depth-tilt absolute left-0.5 right-0.5 rounded-lg px-1.5 py-1 text-left cursor-pointer overflow-hidden border shadow-elev-2 hover:brightness-125 hover:shadow-elev-4 hover:z-10 focus-visible:z-20 focus-visible:shadow-elev-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--ring))] active:scale-[0.98]"
       style={{
         top: `${top}px`,
         height: `${height}px`,
@@ -189,7 +197,7 @@ function ScheduleBlock({ item, index, onSelect }: {
           {item.location}
         </p>
       )}
-    </div>
+    </button>
   );
 }
 
@@ -708,7 +716,7 @@ export default function DashboardPage() {
                   </div>
                   {DAYS.map((day, dayIdx) => (
                     <div key={day}
-                      className={`relative border-l border-border/50 ${dayIdx === todayIdx ? "bg-primary/[0.025]" : ""}`}
+                      className={`depth-stage relative border-l border-border/50 ${dayIdx === todayIdx ? "bg-primary/[0.025]" : ""}`}
                       style={{ height: `${TOTAL_HEIGHT}px` }}>
                       {HOURS.map((_, i) => (
                         <div key={i} className="absolute left-0 right-0 border-b border-border/20"

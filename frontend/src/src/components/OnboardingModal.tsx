@@ -395,15 +395,15 @@ export default function OnboardingModal({ onComplete }: Props) {
     // the pre-migration behaviour, which had no close path at all.
     <Dialog.Root open>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 animate-fade-in" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[3px] animate-fade-in" />
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <div className="dialog-stage fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
           <Dialog.Content
             aria-describedby={undefined}
             onEscapeKeyDown={(e) => e.preventDefault()}
             onPointerDownOutside={(e) => e.preventDefault()}
             onInteractOutside={(e) => e.preventDefault()}
-            className="pointer-events-auto bg-card border border-border rounded-xl w-full max-w-md flex flex-col gap-6 p-8 animate-fade-slide-up"
+            className="dialog-surface pointer-events-auto bg-card border border-border rounded-xl w-full max-w-md flex flex-col gap-6 p-8 animate-dialog-in"
           >
             {/* No single visible title — each step has its own heading. */}
             <VisuallyHidden.Root asChild>

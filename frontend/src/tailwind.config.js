@@ -45,6 +45,17 @@ export default {
         display: ['"Bricolage Grotesque"', "system-ui", "sans-serif"],
         mono: ['"JetBrains Mono"', "monospace"],
       },
+      boxShadow: {
+        /* Dark-UI elevation. On hsl(220 20% 4%) a plain drop shadow is
+           black-on-black and reads as nothing, so each level pairs a
+           two-layer shadow with a 1px inset top highlight that implies a
+           light source above the surface. Pair with the --surface-* tints
+           in index.css: higher planes get lighter, not just darker-shadowed. */
+        "elev-1": "0 1px 2px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)",
+        "elev-2": "0 2px 4px rgba(0,0,0,.5), 0 6px 16px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06)",
+        "elev-3": "0 4px 8px rgba(0,0,0,.5), 0 14px 34px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07)",
+        "elev-4": "0 10px 20px rgba(0,0,0,.55), 0 30px 70px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.09)",
+      },
       keyframes: {
         "fade-up": {
           "0%": { opacity: "0", transform: "translateY(20px)" },

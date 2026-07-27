@@ -266,13 +266,13 @@ export default function ScheduleInputModal({ isOpen, onClose, onSaved }: Props) 
     <Dialog.Root open={isOpen} onOpenChange={(next) => { if (!next) onClose(); }}>
       <Dialog.Portal>
         {/* Backdrop */}
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 animate-fade-in" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[3px] animate-fade-in" />
 
         {/* Panel */}
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <div className="dialog-stage fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
           <Dialog.Content
             onCloseAutoFocus={handleCloseAutoFocus}
-            className="pointer-events-auto bg-card border border-border rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-fade-slide-up">
+            className="dialog-surface pointer-events-auto bg-card border border-border rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-dialog-in">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-border">
               <div className="flex items-center gap-3">

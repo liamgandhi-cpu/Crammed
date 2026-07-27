@@ -349,17 +349,17 @@ export default function FileImportModal({ isOpen, onClose, onImported }: Props) 
     <Dialog.Root open={isOpen} onOpenChange={(next) => { if (!next) handleClose(); }}>
       <Dialog.Portal>
         {/* Backdrop */}
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[3px]" />
 
         {/* Modal */}
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <div className="dialog-stage fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
           <Dialog.Content
             onCloseAutoFocus={handleCloseAutoFocus}
             // Processing must not be interrupted. handleClose already refuses to
             // close in that state; block the dismiss gestures so Radix does too.
             onEscapeKeyDown={(e) => { if (state === "processing") e.preventDefault(); }}
             onPointerDownOutside={(e) => { if (state === "processing") e.preventDefault(); }}
-            className="pointer-events-auto bg-card border border-border rounded-xl w-full max-w-2xl flex flex-col animate-fade-slide-up max-h-[90vh]"
+            className="dialog-surface pointer-events-auto bg-card border border-border rounded-xl w-full max-w-2xl flex flex-col animate-dialog-in max-h-[90vh]"
           >
 
             {/* Header */}
