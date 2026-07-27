@@ -1,4 +1,6 @@
 import { useState, useCallback } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import {
   CalendarRange, GraduationCap, Clock, Brain,
   CheckCircle2, ChevronRight, Loader2, Shield,
@@ -387,22 +389,41 @@ export default function OnboardingModal({ onComplete }: Props) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="absolute inset-0 bg-black/50" />
+    // Intentionally non-dismissible: onboarding must be completed, not escaped.
+    // `open` is constant and there is no onOpenChange, so the only exit is
+    // onComplete. Escape and outside-click are explicitly blocked to preserve
+    // the pre-migration behaviour, which had no close path at all.
+    <Dialog.Root open>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 animate-fade-in" />
 
-      <div className="relative z-10 bg-card border border-border rounded-xl w-full max-w-md flex flex-col gap-6 p-8 animate-fade-slide-up">
-        <ProgressDots current={step} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+          <Dialog.Content
+            aria-describedby={undefined}
+            onEscapeKeyDown={(e) => e.preventDefault()}
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+            className="pointer-events-auto bg-card border border-border rounded-xl w-full max-w-md flex flex-col gap-6 p-8 animate-fade-slide-up"
+          >
+            {/* No single visible title — each step has its own heading. */}
+            <VisuallyHidden.Root asChild>
+              <Dialog.Title>Getting started</Dialog.Title>
+            </VisuallyHidden.Root>
 
-        {step === "welcome" && <WelcomeStep onNext={() => next()} />}
-        {step === "connect" && (
-          <ConnectStep
-            onNext={() => next()}
-            onSkip={() => next()}
-          />
-        )}
-        {step === "prefs" && <PrefsStep onNext={() => next()} />}
-        {step === "done"  && <DoneStep onComplete={onComplete} />}
-      </div>
-    </div>
+            <ProgressDots current={step} />
+
+            {step === "welcome" && <WelcomeStep onNext={() => next()} />}
+            {step === "connect" && (
+              <ConnectStep
+                onNext={() => next()}
+                onSkip={() => next()}
+              />
+            )}
+            {step === "prefs" && <PrefsStep onNext={() => next()} />}
+            {step === "done"  && <DoneStep onComplete={onComplete} />}
+          </Dialog.Content>
+        </div>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
