@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 4%;
+    --foreground: 220 10% 92%;
+    --card: 220 16% 8%;
+    --card-foreground: 220 10% 92%;
+    --primary: 25 95% 53%;
+    --primary-foreground: 220 16% 8%;
+    --secondary: 220 14% 16%;
+    --secondary-foreground: 220 10% 85%;
+    --muted: 220 14% 12%;
+    --muted-foreground: 220 12% 59%;
+    --accent: 25 95% 53%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 14%;
+    --input: 220 13% 14%;
+    --ring: 25 95% 40%;
+    --radius: 0.625rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-card border border-border rounded-xl;
+  }
+
+  .glass-panel-hover {
+    @apply bg-card border border-border rounded-xl transition-all duration-150;
+  }
+  .glass-panel-hover:hover {
+    @apply -translate-y-px shadow-md;
+  }
+
+  .section-header {
+    @apply flex items-center gap-3 mb-4;
+  }
+  .section-header-line {
+    @apply flex-1 h-px bg-border/60;
+  }
+}
+
+@keyframes shimmer {
+  from { background-position: -600px 0; }
+  to   { background-position:  600px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted) / 0.4) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 600px 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease both;
+}
+
+.animate-fade-slide-up {
+  animation: fadeSlideUp 0.25s ease both;
+}
+
+.schedule-block {
+  animation: fadeSlideUp 0.3s ease both;
+}

@@ -1,0 +1,4 @@
+{
+  "alias": ["myautoplanner.vercel.app", "myautoplanner.com"],
+  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
+}
