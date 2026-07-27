@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import {
   X,
   Shield,
@@ -332,69 +333,61 @@ function IonTab({ onImported }: { onImported: () => void }) {
 export default function ConnectAccountModal({ isOpen, onClose, onImported }: Props) {
   const [tab, setTab] = useState<Tab>("studentvue");
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="absolute inset-0 bg-black/50" />
+    <Dialog.Root open={isOpen} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 animate-fade-in" />
 
-      <div className="relative z-10 bg-card border border-border rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col animate-fade-slide-up">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <div>
-            <h2 className="font-display text-lg font-bold">Connect School Account</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Auto-import your schedule and assignments via Chrome
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div className="px-6 pt-4">
-          <div className="flex gap-1 bg-muted/30 rounded-xl p-1">
-            {(["studentvue", "schoology", "ion"] as Tab[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  tab === t
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+          <Dialog.Content className="pointer-events-auto bg-card border border-border rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col animate-fade-slide-up">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <div>
+                <Dialog.Title className="font-display text-lg font-bold">Connect School Account</Dialog.Title>
+                <Dialog.Description className="text-xs text-muted-foreground mt-0.5">
+                  Auto-import your schedule and assignments via Chrome
+                </Dialog.Description>
+              </div>
+              <Dialog.Close
+                aria-label="Close"
+                className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
               >
-                {t === "studentvue" ? "StudentVUE" : t === "schoology" ? "Schoology" : "Ion"}
-              </button>
-            ))}
-          </div>
-        </div>
+                <X className="h-4 w-4" />
+              </Dialog.Close>
+            </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {tab === "studentvue" ? (
-            <StudentVueTab onImported={onImported} onClose={onClose} />
-          ) : tab === "schoology" ? (
-            <SchoologyTab onImported={onImported} onClose={onClose} />
-          ) : (
-            <IonTab onImported={onImported} />
-          )}
+            {/* Tabs */}
+            <div className="px-6 pt-4">
+              <div className="flex gap-1 bg-muted/30 rounded-xl p-1">
+                {(["studentvue", "schoology", "ion"] as Tab[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      tab === t
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t === "studentvue" ? "StudentVUE" : t === "schoology" ? "Schoology" : "Ion"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {tab === "studentvue" ? (
+                <StudentVueTab onImported={onImported} onClose={onClose} />
+              ) : tab === "schoology" ? (
+                <SchoologyTab onImported={onImported} onClose={onClose} />
+              ) : (
+                <IonTab onImported={onImported} />
+              )}
+            </div>
+          </Dialog.Content>
         </div>
-      </div>
-    </div>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
