@@ -110,6 +110,13 @@ const UP = `
   ALTER TABLE schedule_items ADD CONSTRAINT schedule_items_category_check
     CHECK (category IN ('class','activity','assignment','study','other','exam','project'));
 
+  -- How long a task is expected to take, in minutes. Written by
+  -- createScheduleItem/updateScheduleItem and read by the daily planner to
+  -- size study blocks. This column was live in the deployed database but was
+  -- never added here, so every database built from this file 500'd on the
+  -- first schedule-item insert.
+  ALTER TABLE schedule_items ADD COLUMN IF NOT EXISTS estimated_minutes INTEGER;
+
   -- ── File uploads tracking ─────────────────────────────────────────────────────
   CREATE TABLE IF NOT EXISTS file_uploads (
     id             UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
