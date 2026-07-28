@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useId, useState, useEffect, useCallback, useRef } from "react";
 import {
   CalendarRange, LogOut, Award,
   AlertTriangle, Plus, X, Target, BookOpen, RefreshCw,
@@ -267,6 +267,7 @@ function InlineScoreField({
     return (
       <span className="inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
         <input ref={inputRef} type="number" value={score}
+          aria-label={`Score for ${grade.title}`}
           onChange={(e) => setScore(e.target.value)}
           onBlur={save}
           onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
@@ -274,6 +275,7 @@ function InlineScoreField({
         />
         <span className="text-muted-foreground text-xs">/</span>
         <input type="number" value={maxScore}
+          aria-label={`Maximum score for ${grade.title}`}
           onChange={(e) => setMaxScore(e.target.value)}
           onBlur={save}
           onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
@@ -390,34 +392,34 @@ function AddGradeModal({
         </div>
         <div className="p-5 space-y-4">
           <div className="space-y-1.5">
-            <Label>Course</Label>
-            <Input list="add-course-list" placeholder="e.g. Calculus BC" value={form.courseName}
+            <Label htmlFor="grade-course">Course</Label>
+            <Input id="grade-course" list="add-course-list" placeholder="e.g. Calculus BC" value={form.courseName}
               onChange={(e) => set("courseName", e.target.value)} />
             <datalist id="add-course-list">
               {courseNames.map((n) => <option key={n} value={n} />)}
             </datalist>
           </div>
           <div className="space-y-1.5">
-            <Label>Assignment / Exam title</Label>
-            <Input placeholder="e.g. Chapter 5 Test" value={form.title}
+            <Label htmlFor="grade-title">Assignment / Exam title</Label>
+            <Input id="grade-title" placeholder="e.g. Chapter 5 Test" value={form.title}
               onChange={(e) => set("title", e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Score earned</Label>
-              <Input type="number" min={0} placeholder="87.5" value={form.score}
+              <Label htmlFor="grade-score">Score earned</Label>
+              <Input id="grade-score" type="number" min={0} placeholder="87.5" value={form.score}
                 onChange={(e) => set("score", e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Out of</Label>
-              <Input type="number" min={1} placeholder="100" value={form.maxScore}
+              <Label htmlFor="grade-max">Out of</Label>
+              <Input id="grade-max" type="number" min={1} placeholder="100" value={form.maxScore}
                 onChange={(e) => set("maxScore", e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Category</Label>
-              <select value={form.category} onChange={(e) => set("category", e.target.value)}
+              <Label htmlFor="grade-category">Category</Label>
+              <select id="grade-category" value={form.category} onChange={(e) => set("category", e.target.value)}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
@@ -425,8 +427,8 @@ function AddGradeModal({
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>Date</Label>
-              <Input type="date" value={form.gradedAt}
+              <Label htmlFor="grade-date">Date</Label>
+              <Input id="grade-date" type="date" value={form.gradedAt}
                 onChange={(e) => set("gradedAt", e.target.value)} />
             </div>
           </div>
@@ -455,6 +457,9 @@ function CourseCard({
   onGradeUpdated: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  // Ties the disclosure button to the panel it reveals, so assistive tech can
+  // report and follow the relationship.
+  const panelId = useId();
   const cats = calcCategories(grades);
   const sortedGrades = [...grades].sort((a, b) => {
     if (a.graded_at && b.graded_at) return b.graded_at.localeCompare(a.graded_at);
@@ -464,7 +469,13 @@ function CourseCard({
   return (
     <div className={`bg-card border border-border rounded-xl transition-all ${expanded ? "ring-1 ring-primary/30" : ""}`}>
       {/* ── Card header ── */}
-      <div className="p-5 cursor-pointer select-none" onClick={() => setExpanded((e) => !e)}>
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        className="w-full text-left p-5 select-none rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--ring))]"
+      >
         {/* Course name row */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="min-w-0">
@@ -516,11 +527,11 @@ function CourseCard({
             </span>
           )}
         </div>
-      </div>
+      </button>
 
       {/* ── Expanded detail ── */}
       {expanded && (
-        <div className="border-t border-border">
+        <div id={panelId} className="border-t border-border">
           {/* Category bars */}
           {cats.length > 0 && (
             <div className="px-5 pt-4 pb-3 space-y-3 border-b border-border/50">
