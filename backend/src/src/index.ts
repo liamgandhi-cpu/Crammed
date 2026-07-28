@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import path from "path";
+import fs from "fs";
 import authRoutes from "./routes/auth";
 import scheduleRoutes from "./routes/schedule";
 import integrationRoutes from "./routes/integrations";
@@ -81,6 +83,31 @@ app.get("/api/me", authenticate, async (req, res) => {
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+// ── Optional: serve the built SPA from this same process ───
+// Off unless SERVE_STATIC=1. In production the frontend and backend are
+// two separate Vercel projects (the frontend has its own deployment and
+// SPA rewrites), so this must never engage there — it exists purely so a
+// local run can be a single process on a single port.
+if (process.env.SERVE_STATIC === "1" && !process.env.VERCEL) {
+  const distDir = path.resolve(__dirname, "../../../frontend/src/dist");
+
+  if (!fs.existsSync(path.join(distDir, "index.html"))) {
+    logger.warn(
+      `SERVE_STATIC=1 but no build found at ${distDir} — run \`npm run build\` in frontend/src. Serving API only.`
+    );
+  } else {
+    app.use(express.static(distDir));
+
+    // SPA fallback: any non-/api GET that isn't a real file returns index.html
+    // so client-side routes (/dashboard, /today) survive a hard refresh.
+    app.get(/^\/(?!api\/).*/, (_req, res) => {
+      res.sendFile(path.join(distDir, "index.html"));
+    });
+
+    logger.info(`📦 Serving SPA from ${distDir}`);
+  }
+}
 
 // 404 catch-all
 app.use((_req, res) => {
