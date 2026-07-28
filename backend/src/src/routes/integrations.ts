@@ -18,6 +18,7 @@ import { scrapeStudentVue, scrapeSchoology, testStudentVueLogin } from "../servi
 import { getStudentVueGradebook } from "../services/studentVueSoap";
 import { query } from "../config/db";
 import { logger } from "../logger";
+import { toClientError, internalDetail } from "../utils/errors";
 
 const router = Router();
 router.use(authenticate);
@@ -144,9 +145,9 @@ router.post(
       const { studentName } = await testStudentVueLogin(districtUrl, username, password);
       res.json({ success: true, studentName });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Login failed";
-      logger.error("StudentVUE test error", err);
-      res.status(401).json({ error: msg });
+      const { status, message } = toClientError(err, "We couldn't sign in to StudentVUE. Check your Student ID and password, then try again.", 401);
+      logger.error("StudentVUE test error", internalDetail(err));
+      res.status(status).json({ error: message });
     }
   }
 );
@@ -208,10 +209,10 @@ router.post(
       await completeJob(jobId, { imported, classCount, assignmentCount });
       res.json({ success: true, jobId, accountId: account.id, imported, classCount, assignmentCount });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Scraping failed";
-      logger.error("StudentVUE connect error", err);
-      await failJob(jobId, msg);
-      res.status(400).json({ error: msg, jobId });
+      const { status, message } = toClientError(err, "We couldn't import from StudentVUE. Check your district and sign-in details, then try again.", 400);
+      logger.error("StudentVUE connect error", internalDetail(err));
+      await failJob(jobId, message);
+      res.status(status).json({ error: message, jobId });
     }
   }
 );
@@ -246,10 +247,10 @@ router.post("/studentvue/sync", async (req, res) => {
     await completeJob(jobId, { imported });
     res.json({ success: true, jobId, imported });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Sync failed";
-    logger.error("StudentVUE sync error", err);
-    await failJob(jobId, msg);
-    res.status(400).json({ error: msg, jobId });
+    const { status, message } = toClientError(err, "We couldn't sync your StudentVUE schedule. Try again in a moment.", 400);
+    logger.error("StudentVUE sync error", internalDetail(err));
+    await failJob(jobId, message);
+    res.status(status).json({ error: message, jobId });
   }
 });
 
@@ -350,9 +351,9 @@ router.post("/studentvue/sync-grades", async (req, res) => {
     logger.info(`StudentVUE sync-grades: synced ${synced} courses for user ${userId}`);
     res.json({ synced, courses: courseNames });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Grade sync failed";
-    logger.error("StudentVUE sync-grades error", err);
-    res.status(400).json({ error: msg });
+    const { status, message } = toClientError(err, "We couldn't sync your grades from StudentVUE. Try again in a moment.", 400);
+    logger.error("StudentVUE sync-grades error", internalDetail(err));
+    res.status(status).json({ error: message });
   }
 });
 
@@ -387,10 +388,10 @@ router.post(
       await completeJob(jobId, { imported });
       res.json({ success: true, jobId, accountId: account.id, imported });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Scraping failed";
-      logger.error("Schoology connect error", err);
-      await failJob(jobId, msg);
-      res.status(400).json({ error: msg, jobId });
+      const { status, message } = toClientError(err, "We couldn't import from Schoology. Check your district and sign-in details, then try again.", 400);
+      logger.error("Schoology connect error", internalDetail(err));
+      await failJob(jobId, message);
+      res.status(status).json({ error: message, jobId });
     }
   }
 );
@@ -428,10 +429,10 @@ router.post("/schoology/sync", async (req, res) => {
     await completeJob(jobId, { imported });
     res.json({ success: true, jobId, imported });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Sync failed";
-    logger.error("Schoology sync error", err);
-    await failJob(jobId, msg);
-    res.status(400).json({ error: msg, jobId });
+    const { status, message } = toClientError(err, "We couldn't sync from Schoology. Try again in a moment.", 400);
+    logger.error("Schoology sync error", internalDetail(err));
+    await failJob(jobId, message);
+    res.status(status).json({ error: message, jobId });
   }
 });
 

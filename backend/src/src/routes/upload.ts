@@ -14,6 +14,7 @@ import {
   type ParsedScheduleItem,
 } from "../services/aiExtractor";
 import { logger } from "../logger";
+import { toClientError, internalDetail } from "../utils/errors";
 
 const router = Router();
 router.use(authenticate);
@@ -126,12 +127,14 @@ router.post(
             ? "File too large. Maximum size is 20 MB."
             : err.code === "LIMIT_FILE_COUNT"
             ? "Too many files. Maximum is 5 files at once."
-            : err.message;
+            // Any other multer failure is about our config, not the upload.
+            : "We couldn't accept that upload. Try a different file.";
         res.status(400).json({ error: msg });
         return;
       }
       if (err) {
-        res.status(400).json({ error: (err as Error).message });
+        logger.error("Upload middleware error", internalDetail(err));
+        res.status(400).json({ error: "We couldn't accept that upload. Try again." });
         return;
       }
       next();
@@ -229,8 +232,15 @@ router.post(
             status: "completed",
           });
         } catch (err) {
-          const msg = err instanceof Error ? err.message : "Processing failed";
-          logger.error(`Upload processing error for ${file.originalname}: ${msg}`);
+          // Extraction runs the file through the AI pipeline; its errors quote
+          // model output and SDK internals, so they must not reach the client
+          // or be persisted into the upload record the client reads back.
+          const { message: msg } = toClientError(
+            err,
+            "We couldn't read this file. Try a PDF, DOCX, CSV, ICS or image.",
+            400
+          );
+          logger.error(`Upload processing error for ${file.originalname}`, internalDetail(err));
           if (uploadId) {
             await updateUploadRecord(uploadId, {
               status: "failed",

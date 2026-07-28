@@ -5,6 +5,7 @@ import { validate } from "../middleware/validate";
 import { generateDailyPlan } from "../services/dailyPlanner";
 import { query } from "../config/db";
 import { logger } from "../logger";
+import { toClientError, internalDetail } from "../utils/errors";
 
 const router = Router();
 router.use(authenticate);
@@ -122,9 +123,11 @@ router.post("/regenerate", validate(regenerateSchema), async (req: Request, res:
     const plan = await generateDailyPlan(req.user!.userId, date, true);
     res.json({ plan });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    logger.error("Failed to regenerate plan", { error: msg, stack: err instanceof Error ? err.stack : "" });
-    res.status(500).json({ error: msg });
+    // Never forward the raw message: plan generation calls the Anthropic
+    // SDK, whose errors describe our configuration, not the user's problem.
+    const { status, message } = toClientError(err, "We couldn't rebuild your plan just now. Try again in a moment.", 500);
+    logger.error("Failed to regenerate plan", internalDetail(err));
+    res.status(status).json({ error: message });
   }
 });
 
@@ -172,9 +175,11 @@ router.get("/today", async (req: Request, res: Response) => {
     const plan = await generateDailyPlan(req.user!.userId, todayString());
     res.json({ plan });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    logger.error("Failed to generate today's plan", { error: msg, stack: err instanceof Error ? err.stack : "" });
-    res.status(500).json({ error: msg });
+    // Never forward the raw message: plan generation calls the Anthropic
+    // SDK, whose errors describe our configuration, not the user's problem.
+    const { status, message } = toClientError(err, "We couldn't build today's plan just now. Try again in a moment.", 500);
+    logger.error("Failed to generate today's plan", internalDetail(err));
+    res.status(status).json({ error: message });
   }
 });
 
@@ -196,9 +201,11 @@ router.get("/:date", async (req: Request, res: Response) => {
     const plan = await generateDailyPlan(req.user!.userId, date);
     res.json({ plan });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    logger.error("Failed to generate plan", { error: msg, stack: err instanceof Error ? err.stack : "" });
-    res.status(500).json({ error: msg });
+    // Never forward the raw message: plan generation calls the Anthropic
+    // SDK, whose errors describe our configuration, not the user's problem.
+    const { status, message } = toClientError(err, "We couldn't build your plan for that day. Try again in a moment.", 500);
+    logger.error("Failed to generate plan", internalDetail(err));
+    res.status(status).json({ error: message });
   }
 });
 
