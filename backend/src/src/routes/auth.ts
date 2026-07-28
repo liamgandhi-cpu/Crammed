@@ -1,6 +1,5 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import https from "https";
 import { validate } from "../middleware/validate";
 import { authenticate, signToken } from "../middleware/auth";
 import {

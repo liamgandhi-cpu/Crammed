@@ -100,17 +100,6 @@ const PERIOD_DAYS: Record<number, Array<{ day: number; type: DayType }>> = {
   7: [{ day: 0, type: "anchor" }, { day: 2, type: "red" }, { day: 4, type: "red" }],
 };
 
-function parseTimeString(raw: string): string | null {
-  const match = raw.trim().match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
-  if (!match) return null;
-  let h = parseInt(match[1], 10);
-  const m = parseInt(match[2], 10);
-  const period = match[3]?.toLowerCase();
-  if (period === "pm" && h !== 12) h += 12;
-  if (period === "am" && h === 12) h = 0;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
 function classColor(period: number): string {
   const COLORS = [
     "#f97316", "#38bdf8", "#a855f7", "#22c55e",
