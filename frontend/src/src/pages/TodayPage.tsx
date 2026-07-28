@@ -122,12 +122,12 @@ function StatsCard({ plan }: { plan: DailyPlan }) {
   const done = plan.blocks.filter((b) => b.completed).length;
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+    <div className="surface-raised p-5 space-y-5">
       <div className="flex items-center gap-2">
         <div className="h-6 w-6 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center">
           <Zap className="h-3.5 w-3.5 text-primary" />
         </div>
-        <h3 className="font-display text-sm font-semibold">Today's Stats</h3>
+        <h2 className="font-display text-sm font-semibold">Today's Stats</h2>
       </div>
 
       {/* Progress ring */}
@@ -409,12 +409,12 @@ export default function TodayPage() {
   function WeeklySummaryCard() {
     if (!weeklySummary) return null;
     return (
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="surface-raised p-4 space-y-3">
         <div className="flex items-center gap-2">
           <div className="h-6 w-6 rounded-md bg-muted flex items-center justify-center">
             <Award className="h-3.5 w-3.5 text-muted-foreground" />
           </div>
-          <h3 className="font-display text-sm font-semibold">Weekly Summary</h3>
+          <h2 className="font-display text-sm font-semibold">Weekly Summary</h2>
           <span className="text-[10px] text-muted-foreground ml-auto">{weeklySummary.weekRange}</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -452,12 +452,12 @@ export default function TodayPage() {
   function DueTodayCard() {
     if (classesToday.length === 0 && dueTodayItems.length === 0) return null;
     return (
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="surface-raised p-4 space-y-3">
         <div className="flex items-center gap-2">
           <div className="h-6 w-6 rounded-md bg-muted flex items-center justify-center">
             <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
           </div>
-          <h3 className="font-display text-sm font-semibold">Today's Focus</h3>
+          <h2 className="font-display text-sm font-semibold">Today's Focus</h2>
         </div>
         {classesToday.length > 0 && (
           <div className="space-y-1.5">
@@ -500,12 +500,12 @@ export default function TodayPage() {
   function TodoListCard() {
     const completedCount = todos.filter((t) => t.completed).length;
     return (
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="surface-raised p-4 space-y-3">
         <div className="flex items-center gap-2">
           <div className="h-6 w-6 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center">
             <ListTodo className="h-3.5 w-3.5 text-primary" />
           </div>
-          <h3 className="font-display text-sm font-semibold">To-Do</h3>
+          <h2 className="font-display text-sm font-semibold">To-Do</h2>
           {todos.length > 0 && (
             <span className="text-[10px] text-muted-foreground bg-muted border border-border px-1.5 py-0.5 rounded-full ml-auto">
               {completedCount}/{todos.length}
@@ -579,6 +579,7 @@ export default function TodayPage() {
           <div className="flex items-center gap-1 bg-muted/40 rounded-xl p-1 border border-border/50">
             <button
               onClick={() => navigate("/today")}
+              aria-current="page"
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-card border border-border/60 text-foreground shadow-sm"
             >
               Today's Plan
@@ -588,6 +589,12 @@ export default function TodayPage() {
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-muted-foreground hover:text-foreground"
             >
               Schedule
+            </button>
+            <button
+              onClick={() => navigate("/grades")}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-muted-foreground hover:text-foreground"
+            >
+              Grades
             </button>
           </div>
 
@@ -617,15 +624,20 @@ export default function TodayPage() {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => navigateDate(-1)}
+                aria-label="Previous day"
                 className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <h2 className="font-display text-base sm:text-lg font-semibold text-muted-foreground">
+              {/* The page's h1: always rendered, and it identifies which day
+                  is shown. The greeting above is larger but decorative, and
+                  only appears for today — it can't carry the heading. */}
+              <h1 className="font-display text-base sm:text-lg font-semibold text-muted-foreground">
                 {formatDisplayDate(dateStr)}
-              </h2>
+              </h1>
               <button
                 onClick={() => navigateDate(1)}
+                aria-label="Next day"
                 className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -674,7 +686,7 @@ export default function TodayPage() {
 
         {/* Notification permission banner */}
         {notifPermission !== "granted" && notifPermission !== "unsupported" && !notifBannerDismissed && (
-          <div className="mb-4 bg-card border border-border rounded-xl border-l-4 border-l-blue-500 px-4 py-3 flex items-center gap-3">
+          <div className="mb-4 surface-raised border-l-4 border-l-blue-500 px-4 py-3 flex items-center gap-3">
             <Bell className="h-4 w-4 text-blue-400 flex-shrink-0" />
             <span className="text-xs text-muted-foreground flex-1">
               Enable notifications for reminders about classes, assignments, and study blocks.
@@ -706,7 +718,7 @@ export default function TodayPage() {
 
         {/* Empty state */}
         {empty && !loading && (
-          <div className="bg-card border border-border rounded-xl p-10 text-center max-w-md mx-auto">
+          <div className="surface-raised p-10 text-center max-w-md mx-auto">
             <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
               <Brain className="h-7 w-7 text-primary" />
             </div>
@@ -870,7 +882,7 @@ export default function TodayPage() {
             {/* Stats sidebar — desktop only */}
             <div className="hidden lg:block lg:w-60 xl:w-64 flex-shrink-0">
               {loading ? (
-                <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+                <div className="surface-raised p-5 space-y-3">
                   {Array.from({ length: 6 }, (_, i) => (
                     <div key={i} className="skeleton h-5 rounded-lg" style={{ animationDelay: `${i * 0.08}s` }} />
                   ))}

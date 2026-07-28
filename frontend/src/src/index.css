@@ -62,6 +62,14 @@
     @apply bg-card border border-border rounded-xl;
   }
 
+  /* A panel that sits above the page plane. Pairs the surface tint with the
+     matching shadow — on this background the tint is what actually separates
+     the planes; the shadow alone is nearly invisible. */
+  .surface-raised {
+    @apply border border-border rounded-xl shadow-elev-2;
+    background-color: hsl(var(--surface-2));
+  }
+
   .glass-panel-hover {
     @apply bg-card border border-border rounded-xl transition-all duration-150;
   }

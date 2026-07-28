@@ -514,8 +514,15 @@ export default function DashboardPage() {
               Today's Plan
             </button>
             <button onClick={() => navigate("/dashboard")}
+              aria-current="page"
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-card border border-border/60 text-foreground shadow-sm">
               Schedule
+            </button>
+            <button
+              onClick={() => navigate("/grades")}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-muted-foreground hover:text-foreground"
+            >
+              Grades
             </button>
           </div>
 
