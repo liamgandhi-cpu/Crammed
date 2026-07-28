@@ -170,11 +170,12 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>How heavy is your semester right now?</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <Label id="prefs-semester-label">How heavy is your semester right now?</Label>
+                  <div className="grid grid-cols-3 gap-2" role="group" aria-labelledby="prefs-semester-label">
                     {SEMESTER_LOADS.map((s) => (
                       <button
                         key={s.value}
+                        aria-pressed={prefs.semester_load === s.value}
                         onClick={() => setPrefs((p) => ({ ...p, semester_load: s.value }))}
                         className={`text-left p-3 rounded-xl border text-sm transition-all ${
                           prefs.semester_load === s.value
@@ -211,11 +212,12 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>When do you work best?</Label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <Label id="prefs-style-label">When do you work best?</Label>
+                  <div className="grid grid-cols-2 gap-2" role="group" aria-labelledby="prefs-style-label">
                     {STUDY_STYLES.map((s) => (
                       <button
                         key={s.value}
+                        aria-pressed={prefs.study_style === s.value}
                         onClick={() => setPrefs((p) => ({ ...p, study_style: s.value }))}
                         className={`text-left p-3 rounded-xl border text-sm transition-all ${
                           prefs.study_style === s.value
@@ -232,13 +234,14 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label>Preferred study block length</Label>
+                    <Label id="prefs-block-label">Preferred study block length</Label>
                     <span className="text-sm font-bold text-primary">{prefs.preferred_block_length}m</span>
                   </div>
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2 flex-wrap" role="group" aria-labelledby="prefs-block-label">
                     {BLOCK_LENGTHS.map((l) => (
                       <button
                         key={l}
+                        aria-pressed={prefs.preferred_block_length === l}
                         onClick={() => setPrefs((p) => ({ ...p, preferred_block_length: l }))}
                         className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                           prefs.preferred_block_length === l

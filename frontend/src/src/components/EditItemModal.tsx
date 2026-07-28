@@ -10,9 +10,12 @@ import { useFocusRestore } from "@/hooks/useFocusRestore";
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const PALETTE = [
-  "#f97316", "#38bdf8", "#a855f7", "#22c55e",
-  "#f43f5e", "#eab308", "#06b6d4", "#ec4899",
-  "#8b5cf6", "#10b981", "#ef4444", "#3b82f6",
+  { hex: "#f97316", name: "Orange" },  { hex: "#38bdf8", name: "Sky blue" },
+  { hex: "#a855f7", name: "Purple" },  { hex: "#22c55e", name: "Green" },
+  { hex: "#f43f5e", name: "Rose" },    { hex: "#eab308", name: "Yellow" },
+  { hex: "#06b6d4", name: "Cyan" },    { hex: "#ec4899", name: "Pink" },
+  { hex: "#8b5cf6", name: "Violet" },  { hex: "#10b981", name: "Emerald" },
+  { hex: "#ef4444", name: "Red" },     { hex: "#3b82f6", name: "Blue" },
 ];
 
 interface Props {
@@ -138,17 +141,22 @@ export default function EditItemModal({ item, onClose, onSave }: Props) {
 
               {/* Color */}
               <div className="space-y-1.5">
-                <Label>Color</Label>
-                <div className="flex flex-wrap gap-2">
+                <Label id="edit-color-label">Color</Label>
+                {/* A group, not a single control — the Label has nothing to
+                    point htmlFor at, so it names the group instead. */}
+                <div className="flex flex-wrap gap-2" role="group" aria-labelledby="edit-color-label">
                   {PALETTE.map((c) => (
                     <button
-                      key={c}
-                      onClick={() => setColor(c)}
-                      className="h-6 w-6 rounded-full border-2 transition-transform hover:scale-110"
+                      key={c.hex}
+                      type="button"
+                      onClick={() => setColor(c.hex)}
+                      aria-label={c.name}
+                      aria-pressed={color === c.hex}
+                      className="h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--ring))]"
                       style={{
-                        backgroundColor: c,
-                        borderColor: color === c ? "white" : "transparent",
-                        outline: color === c ? `2px solid ${c}` : "none",
+                        backgroundColor: c.hex,
+                        borderColor: color === c.hex ? "white" : "transparent",
+                        outline: color === c.hex ? `2px solid ${c.hex}` : undefined,
                         outlineOffset: "2px",
                       }}
                     />
@@ -183,11 +191,11 @@ export default function EditItemModal({ item, onClose, onSave }: Props) {
               {/* Exam importance → sets total study minutes, AI spreads them across days */}
               {item.category === "exam" && (
                 <div className="space-y-2">
-                  <Label>
+                  <Label id="edit-exam-importance-label">
                     How important is this exam?{" "}
                     <span className="text-muted-foreground">(sets study time)</span>
                   </Label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-2" role="group" aria-labelledby="edit-exam-importance-label">
                     {[
                       { label: "Low",      mins: 60,  color: "bg-green-500/15 text-green-400 border-green-500/30" },
                       { label: "Medium",   mins: 120, color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
@@ -197,6 +205,7 @@ export default function EditItemModal({ item, onClose, onSave }: Props) {
                       <button
                         key={label}
                         type="button"
+                        aria-pressed={estimatedMinutes === String(mins)}
                         onClick={() => setEstimatedMinutes(String(mins))}
                         className={`rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all ${
                           estimatedMinutes === String(mins)

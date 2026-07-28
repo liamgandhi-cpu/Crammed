@@ -118,6 +118,7 @@ function PreviewItemCard({
       {/* Checkbox */}
       <input
         type="checkbox"
+        aria-label={`Include ${item.title}`}
         checked={item._selected}
         onChange={(e) => onChange(item._id, { _selected: e.target.checked })}
         className="h-3.5 w-3.5 rounded accent-primary flex-shrink-0"
@@ -134,6 +135,7 @@ function PreviewItemCard({
         {item._editing ? (
           <input
             autoFocus
+            aria-label={`Rename ${item.title}`}
             value={item._titleDraft}
             onChange={(e) => onChange(item._id, { _titleDraft: e.target.value })}
             onBlur={() =>
@@ -423,6 +425,7 @@ export default function FileImportModal({ isOpen, onClose, onImported }: Props) 
                     <input
                       ref={fileInputRef}
                       type="file"
+                      aria-label="Choose files to import"
                       accept={ACCEPTED}
                       multiple
                       className="hidden"

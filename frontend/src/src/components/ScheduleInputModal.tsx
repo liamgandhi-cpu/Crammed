@@ -99,10 +99,10 @@ function QuickAddForm({ onSaved, onClose }: QuickAddFormProps) {
     <div className="space-y-4">
       {/* Title */}
       <div>
-        <label className="block text-sm font-medium mb-1.5 text-foreground">
+        <label htmlFor="quick-title" className="block text-sm font-medium mb-1.5 text-foreground">
           Title <span className="text-destructive">*</span>
         </label>
-        <input
+        <input id="quick-title"
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -114,12 +114,13 @@ function QuickAddForm({ onSaved, onClose }: QuickAddFormProps) {
 
       {/* Category */}
       <div>
-        <label className="block text-sm font-medium mb-1.5 text-foreground">Category</label>
-        <div className="flex flex-wrap gap-2">
+        <span id="quick-category-label" className="block text-sm font-medium mb-1.5 text-foreground">Category</span>
+        <div className="flex flex-wrap gap-2" role="group" aria-labelledby="quick-category-label">
           {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
             <button
               key={key}
               onClick={() => setCategory(key as Category)}
+              aria-pressed={category === key}
               className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
               style={
                 category === key
@@ -140,8 +141,9 @@ function QuickAddForm({ onSaved, onClose }: QuickAddFormProps) {
       {/* Due date + Estimated time */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium mb-1.5 text-foreground">Due date</label>
+          <label htmlFor="quick-due-date" className="block text-sm font-medium mb-1.5 text-foreground">Due date</label>
           <input
+            id="quick-due-date"
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
@@ -149,8 +151,8 @@ function QuickAddForm({ onSaved, onClose }: QuickAddFormProps) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1.5 text-foreground">Est. time (min)</label>
-          <input
+          <label htmlFor="quick-est-time" className="block text-sm font-medium mb-1.5 text-foreground">Est. time (min)</label>
+          <input id="quick-est-time"
             type="number"
             value={estimatedMinutes}
             onChange={(e) => setEstimatedMinutes(e.target.value)}
@@ -163,8 +165,8 @@ function QuickAddForm({ onSaved, onClose }: QuickAddFormProps) {
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium mb-1.5 text-foreground">Notes (optional)</label>
-        <textarea
+        <label htmlFor="quick-notes" className="block text-sm font-medium mb-1.5 text-foreground">Notes (optional)</label>
+        <textarea id="quick-notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Any additional details…"
@@ -330,10 +332,10 @@ export default function ScheduleInputModal({ isOpen, onClose, onSaved }: Props) 
                   {!parsedItems && (
                     <>
                       <div>
-                        <label className="block text-sm font-medium mb-2 text-foreground">
+                        <label htmlFor="ai-paste" className="block text-sm font-medium mb-2 text-foreground">
                           Paste your schedule
                         </label>
-                        <textarea
+                        <textarea id="ai-paste"
                           value={text}
                           onChange={(e) => setText(e.target.value)}
                           placeholder={EXAMPLE_TEXT}

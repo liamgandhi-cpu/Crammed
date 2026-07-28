@@ -287,12 +287,13 @@ function PrefsStep({ onNext }: { onNext: () => void }) {
 
       {/* Study style */}
       <div className="space-y-2">
-        <Label>Study style</Label>
-        <div className="grid grid-cols-2 gap-2">
+        <Label id="ob-style-label">Study style</Label>
+        <div className="grid grid-cols-2 gap-2" role="group" aria-labelledby="ob-style-label">
           {STUDY_STYLES.map((s) => (
             <button
               key={s.value}
-              onClick={() => setStudyStyle(s.value)}
+              aria-pressed={studyStyle === s.value}
+                        onClick={() => setStudyStyle(s.value)}
               className={`text-left rounded-xl border p-3 transition-all ${
                 studyStyle === s.value
                   ? "border-primary bg-primary/10"
