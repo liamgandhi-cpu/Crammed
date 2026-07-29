@@ -155,6 +155,24 @@
   animation: dialogIn 280ms cubic-bezier(0, 0, 0.2, 1) both;
 }
 
+/* ── Summer session ────────────────────────────────────────────────
+   A warmer, lower-contrast surface for break periods. Deliberately a
+   tint over the existing palette rather than a second theme: the tokens
+   in :root stay authoritative, so contrast ratios fixed in Phase 1 are
+   preserved and nothing here can drift from them.
+   ------------------------------------------------------------------ */
+.summer-surface {
+  background-image:
+    radial-gradient(120% 80% at 50% -20%, hsl(38 92% 55% / 0.10), transparent 60%),
+    radial-gradient(90% 60% at 100% 0%, hsl(25 95% 53% / 0.06), transparent 55%);
+}
+
+.summer-chip {
+  background-color: hsl(38 92% 55% / 0.12);
+  border-color: hsl(38 92% 55% / 0.30);
+  color: hsl(38 92% 68%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .depth-tilt,
   .depth-tilt:hover,

@@ -37,6 +37,7 @@ router.get("/preferences", async (req: Request, res: Response) => {
       preferred_block_length: 60,
       hard_subjects: null,
       semester_load: "moderate",
+      summer_mode: "auto",
     };
     const row = result.rows[0];
     if (row) {
@@ -63,6 +64,7 @@ const prefsSchema = z.object({
   preferred_block_length: z.number().int().min(25).max(120).optional(),
   hard_subjects:         z.string().max(500).nullable().optional(),
   semester_load:         z.enum(["light", "moderate", "heavy"]).optional(),
+  summer_mode:           z.enum(["auto", "on", "off"]).optional(),
 });
 
 router.put("/preferences", validate(prefsSchema), async (req: Request, res: Response) => {
@@ -75,8 +77,9 @@ router.put("/preferences", validate(prefsSchema), async (req: Request, res: Resp
     await query(
       `INSERT INTO user_preferences
          (user_id, wake_time, sleep_time, study_style, break_frequency, break_duration,
-          max_study_hours, notes, commute_minutes, preferred_block_length, hard_subjects, semester_load)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          max_study_hours, notes, commute_minutes, preferred_block_length, hard_subjects, semester_load,
+          summer_mode)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        ON CONFLICT (user_id) DO UPDATE SET
          wake_time              = COALESCE($2,  user_preferences.wake_time),
          sleep_time             = COALESCE($3,  user_preferences.sleep_time),
@@ -89,6 +92,7 @@ router.put("/preferences", validate(prefsSchema), async (req: Request, res: Resp
          preferred_block_length = COALESCE($10, user_preferences.preferred_block_length),
          hard_subjects          = COALESCE($11, user_preferences.hard_subjects),
          semester_load          = COALESCE($12, user_preferences.semester_load),
+         summer_mode            = COALESCE($13, user_preferences.summer_mode),
          updated_at             = now()`,
       [
         req.user!.userId,
@@ -103,6 +107,7 @@ router.put("/preferences", validate(prefsSchema), async (req: Request, res: Resp
         p.preferred_block_length ?? null,
         p.hard_subjects !== undefined ? p.hard_subjects : null,
         p.semester_load          ?? null,
+        p.summer_mode            ?? null,
       ]
     );
     const result = await query("SELECT * FROM user_preferences WHERE user_id = $1", [req.user!.userId]);

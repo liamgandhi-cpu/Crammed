@@ -174,6 +174,7 @@ export interface UserPreferences {
   preferred_block_length: number;
   hard_subjects: string | null;
   semester_load: "light" | "moderate" | "heavy";
+  summer_mode: "auto" | "on" | "off";
 }
 
 // ── Todo types ──────────────────────────────────────────────

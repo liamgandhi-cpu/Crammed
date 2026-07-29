@@ -27,6 +27,7 @@ const DEFAULTS: UserPreferences = {
   preferred_block_length: 60,
   hard_subjects: null,
   semester_load: "moderate",
+  summer_mode: "auto",
 };
 
 const STUDY_STYLES = [
@@ -34,6 +35,12 @@ const STUDY_STYLES = [
   { value: "early_bird", label: "Early Bird",  desc: "Hard tasks front-loaded before noon" },
   { value: "night_owl",  label: "Night Owl",   desc: "Hard tasks in the afternoon/evening" },
   { value: "pomodoro",   label: "Pomodoro",    desc: "25-min work / 5-min break cycles" },
+] as const;
+
+const SUMMER_MODES = [
+  { value: "auto", label: "Automatic", desc: "Mid-June to late August" },
+  { value: "on",   label: "Always on", desc: "I'm on a break now" },
+  { value: "off",  label: "Never",     desc: "Year-round schedule" },
 ] as const;
 
 const BLOCK_LENGTHS = [25, 30, 45, 60, 90, 120] as const;
@@ -203,6 +210,31 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
                   />
                 </div>
               </section>
+
+                              <div className="space-y-2">
+                  <Label id="prefs-summer-label">Summer mode</Label>
+                  <p className="text-[11px] text-muted-foreground -mt-1">
+                    Plans around projects and self-study instead of a class timetable.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2" role="group" aria-labelledby="prefs-summer-label">
+                    {SUMMER_MODES.map((m) => (
+                      <button
+                        key={m.value}
+                        type="button"
+                        aria-pressed={(prefs.summer_mode ?? "auto") === m.value}
+                        onClick={() => setPrefs((p) => ({ ...p, summer_mode: m.value }))}
+                        className={`text-left p-3 rounded-xl border text-sm transition-all ${
+                          (prefs.summer_mode ?? "auto") === m.value
+                            ? "border-primary/60 bg-primary/10"
+                            : "border-border hover:border-muted-foreground"
+                        }`}
+                      >
+                        <div className="font-medium">{m.label}</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">{m.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
               {/* ── Study style ───────────────────────────────── */}
               <section className="space-y-4">

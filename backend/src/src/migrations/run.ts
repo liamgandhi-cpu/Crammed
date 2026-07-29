@@ -179,6 +179,13 @@ const UP = `
   ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS hard_subjects        TEXT;
   ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS semester_load        VARCHAR(20) DEFAULT 'moderate';
 
+  -- Summer session handling: 'auto' derives from the calendar date, 'on'/'off'
+  -- let a student on a different academic calendar override it.
+  ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS summer_mode          VARCHAR(10) DEFAULT 'auto';
+  ALTER TABLE user_preferences DROP CONSTRAINT IF EXISTS user_preferences_summer_mode_check;
+  ALTER TABLE user_preferences ADD CONSTRAINT user_preferences_summer_mode_check
+    CHECK (summer_mode IN ('auto','on','off'));
+
   -- ── Courses ────────────────────────────────────────────────────────────────
   CREATE TABLE IF NOT EXISTS courses (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),

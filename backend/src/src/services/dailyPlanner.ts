@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { query } from "../config/db";
 import { randomUUID } from "crypto";
+import { isSummerSession, SUMMER_PLANNING_GUIDANCE, type SummerMode } from "../utils/season";
 
 const anthropic = new Anthropic();
 
@@ -335,6 +336,8 @@ export async function generateDailyPlan(
   }
 
   // 8. Build prompt
+  const summer = isSummerSession(date, (prefs.summer_mode as SummerMode) ?? "auto");
+
   const prompt = `You are an expert academic scheduler. Build a precise, conflict-free daily plan.
 
 TODAY: ${date} (${DAY_NAMES[jsDay]})
@@ -353,6 +356,7 @@ TODAY: ${date} (${DAY_NAMES[jsDay]})
   : prefs.semester_load === "light" ? "light study load; generous free/leisure blocks"
   : "balanced — roughly equal study and downtime"}${prefs.hard_subjects ? `\n- Hard subjects (add 50% extra time for these): ${prefs.hard_subjects}` : ""}${prefs.notes ? `\n- Extra notes: ${prefs.notes}` : ""}
 
+${summer ? `\n${SUMMER_PLANNING_GUIDANCE}\n` : ""}
 ═══ FIXED BLOCKS (do NOT overlap or modify these) ═══
 ${
   allFixedBlocks.length === 0

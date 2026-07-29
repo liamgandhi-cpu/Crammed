@@ -216,6 +216,15 @@ function PlanSkeleton() {
 
 // ── Today page ─────────────────────────────────────────────
 
+/** Mirrors backend/src/src/utils/season.ts — keep the window in sync. */
+function isSummerSession(dateStr: string, mode: string | null | undefined): boolean {
+  if (mode === "on") return true;
+  if (mode === "off") return false;
+  const [, m, d] = dateStr.split("-").map(Number);
+  if (!m || !d) return false;
+  return (m > 6 || (m === 6 && d >= 15)) && (m < 8 || (m === 8 && d <= 25));
+}
+
 export default function TodayPage() {
   const { user, token, logout } = useAuth();
   const navigate = useNavigate();
@@ -226,14 +235,26 @@ export default function TodayPage() {
   const [error, setError] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
+  const [summerMode, setSummerMode] = useState<string | null>(null);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [todoInput, setTodoInput] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
+  const isSummer = isSummerSession(dateStr, summerMode);
+
   const [nowH, setNowH] = useState(() => {
     const n = new Date();
     return n.getHours() + n.getMinutes() / 60;
   });
+
+  // summer_mode drives the seasonal treatment; re-read when preferences close
+  // so toggling the override applies without a reload.
+  useEffect(() => {
+    if (!token || prefsOpen) return;
+    api.getPreferences(token)
+      .then(({ preferences }) => setSummerMode(preferences.summer_mode ?? "auto"))
+      .catch(() => setSummerMode("auto"));
+  }, [token, prefsOpen]);
   const currentBlockRef = useRef<HTMLDivElement>(null);
 
   // Timer + notifications
@@ -611,7 +632,7 @@ export default function TodayPage() {
       </nav>
 
       {/* Main */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      <main className={`max-w-6xl mx-auto px-4 sm:px-6 py-6 ${isSummer ? "summer-surface" : ""}`}>
 
         {/* Greeting + date nav */}
         <div className="flex items-start justify-between mb-5 gap-4 flex-wrap">
@@ -635,6 +656,11 @@ export default function TodayPage() {
               <h1 className="font-display text-base sm:text-lg font-semibold text-muted-foreground">
                 {formatDisplayDate(dateStr)}
               </h1>
+              {isSummer && (
+                <span className="summer-chip ml-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide">
+                  SUMMER
+                </span>
+              )}
               <button
                 onClick={() => navigateDate(1)}
                 aria-label="Next day"
