@@ -291,6 +291,46 @@ const UP = `
 
   CREATE INDEX IF NOT EXISTS idx_scrape_jobs_user ON scrape_jobs(user_id, created_at DESC);
 
+  -- ── Extracurricular plan ──────────────────────────────────────────────────
+  -- Adapted from a schema written against Supabase. This project is plain
+  -- Postgres behind the Express API, so two things from that version are gone:
+  -- the foreign key targets public.users (there is no auth.users schema here),
+  -- and the four RLS policies are omitted because auth.uid() does not exist and
+  -- the API connects as a single role — enabling RLS would evaluate auth.uid()
+  -- to NULL and lock every row out for everyone. Ownership is enforced in the
+  -- route layer, which scopes each query by req.user.userId, as every other
+  -- table here already does.
+  CREATE TABLE IF NOT EXISTS ec_plan_items (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title          VARCHAR(255) NOT NULL,
+    year           SMALLINT NOT NULL CHECK (year BETWEEN 9 AND 12),
+    category       VARCHAR(50) NOT NULL,
+    why            TEXT,
+    first_step     TEXT,
+    hours_per_week NUMERIC(4,1),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_ec_plan_items_user_year ON ec_plan_items (user_id, year);
+
+  -- ── Daily AI generation cap ───────────────────────────────────────────────
+  -- Read and incremented server-side before each model call, in one atomic
+  -- statement (see utils/aiUsage.ts). A counter in React state is decoration,
+  -- not a limit. No stored procedure: the upsert is a single statement, so it
+  -- is already atomic, and this codebase keeps its logic in TypeScript rather
+  -- than in plpgsql.
+  --
+  -- The day column uses current_date, which resolves in the database's
+  -- timezone (UTC on most hosts), so the cap resets at UTC midnight rather
+  -- than at the student's local midnight.
+  CREATE TABLE IF NOT EXISTS ai_usage (
+    user_id UUID    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    day     DATE    NOT NULL DEFAULT current_date,
+    calls   INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, day)
+  );
+
 `;
 
 async function migrate() {

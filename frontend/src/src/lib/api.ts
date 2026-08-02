@@ -287,6 +287,46 @@ export interface WeeklySummary {
   focusStats: { totalSeconds: number; streak: number };
 }
 
+// ── Extracurricular plan types ──────────────────────────────
+
+export const EC_CATEGORIES = [
+  "leadership",
+  "service",
+  "research",
+  "arts",
+  "athletics",
+  "work",
+  "competition",
+  "project",
+] as const;
+
+export type EcCategory = (typeof EC_CATEGORIES)[number];
+
+export interface EcPlanItem {
+  id: string;
+  title: string;
+  year: number;
+  category: EcCategory;
+  why: string | null;
+  first_step: string | null;
+  hours_per_week: number | null;
+  created_at: string;
+}
+
+/** Today's generation count against the server-side daily cap. */
+export interface AiUsage {
+  allowed: boolean;
+  calls: number;
+  limit: number;
+  remaining: number;
+}
+
+export interface EcPlanRequest {
+  currentYear: number;
+  interests: string;
+  hoursPerWeek: number;
+}
+
 export const api = {
   signup(email: string, password: string, confirmPassword: string) {
     return request<AuthResponse>("/api/auth/signup", {
@@ -667,6 +707,44 @@ export const api = {
       method: "PUT",
       token,
       body: JSON.stringify(prefs),
+    });
+  },
+
+  // ── Extracurricular plan ───────────────────────────────────
+
+  getEcPlan(token: string) {
+    return request<{ items: EcPlanItem[]; usage: AiUsage }>("/api/ec-plan", { token });
+  },
+
+  /** Replaces the saved plan. Throws ApiError with status 429 when over cap. */
+  generateEcPlan(token: string, body: EcPlanRequest) {
+    return request<{ items: EcPlanItem[]; usage: AiUsage }>("/api/ec-plan/generate", {
+      method: "POST",
+      token,
+      body: JSON.stringify(body),
+    });
+  },
+
+  addEcPlanItem(token: string, item: Omit<EcPlanItem, "id" | "created_at">) {
+    return request<{ item: EcPlanItem }>("/api/ec-plan/items", {
+      method: "POST",
+      token,
+      body: JSON.stringify(item),
+    });
+  },
+
+  updateEcPlanItem(token: string, id: string, patch: Partial<EcPlanItem>) {
+    return request<{ item: EcPlanItem }>(`/api/ec-plan/items/${id}`, {
+      method: "PATCH",
+      token,
+      body: JSON.stringify(patch),
+    });
+  },
+
+  deleteEcPlanItem(token: string, id: string) {
+    return request<{ ok: boolean }>(`/api/ec-plan/items/${id}`, {
+      method: "DELETE",
+      token,
     });
   },
 };
