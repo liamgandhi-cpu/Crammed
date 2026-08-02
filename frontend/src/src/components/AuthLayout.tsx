@@ -39,7 +39,7 @@ export function AuthLayout({ children, title, subtitle, aside }: AuthLayoutProps
         </div>
 
         <p className="text-micro text-ink-4">
-          © {new Date().getFullYear()} AutoPlanner
+          © {new Date().getFullYear()} Crammed
         </p>
       </aside>
 

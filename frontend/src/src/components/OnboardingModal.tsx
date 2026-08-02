@@ -39,7 +39,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
         <CalendarRange className="h-10 w-10 text-primary" />
       </div>
       <div className="space-y-2">
-        <h2 className="font-display text-2xl font-bold">Welcome to AutoPlanner</h2>
+        <h2 className="font-display text-2xl font-bold">Welcome to Crammed</h2>
         <p className="text-sm text-muted-foreground max-w-xs">
           Your AI-powered study planner that syncs with StudentVUE and Schoology.
           Let's get you set up in under a minute.
@@ -255,7 +255,7 @@ function PrefsStep({ onNext }: { onNext: () => void }) {
         </div>
         <h3 className="font-display text-lg font-bold">Your Study Style</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Tell AutoPlanner how you like to work so it can plan your day.
+          Tell Crammed how you like to work so it can plan your day.
         </p>
       </div>
 
@@ -330,7 +330,7 @@ function DoneStep({ onComplete }: { onComplete: () => void }) {
       <div className="space-y-2">
         <h2 className="font-display text-2xl font-bold">You're all set!</h2>
         <p className="text-sm text-muted-foreground max-w-xs">
-          AutoPlanner will generate your daily study plan each morning.
+          Crammed will generate your daily study plan each morning.
           You can connect more accounts and tweak settings anytime.
         </p>
       </div>

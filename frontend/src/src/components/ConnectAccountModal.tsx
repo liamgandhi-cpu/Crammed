@@ -302,7 +302,7 @@ function IonTab({ onImported }: { onImported: () => void }) {
 
       <div className="rounded-xl bg-muted/30 border border-border p-3 text-xs text-muted-foreground space-y-1">
         <p className="font-medium text-foreground">What gets imported?</p>
-        <p>Your class periods for each school day this week are added to AutoPlanner, including course names and room numbers.</p>
+        <p>Your class periods for each school day this week are added to Crammed, including course names and room numbers.</p>
       </div>
 
       {error && (

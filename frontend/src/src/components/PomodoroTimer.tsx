@@ -155,9 +155,9 @@ export default function PomodoroTimer({ blockId, courseName, blockTitle, onClose
     if (running) {
       document.title = `${fmt(timeLeft)} — ${PHASE_LABEL[phase]}`;
     } else {
-      document.title = "AutoPlanner";
+      document.title = "Crammed";
     }
-    return () => { document.title = "AutoPlanner"; };
+    return () => { document.title = "Crammed"; };
   }, [running, timeLeft, phase]);
 
   const handlePlay = () => {
