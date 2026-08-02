@@ -23,6 +23,22 @@ router.use(authenticate);
  * violation the database will catch.
  */
 
+/**
+ * pg returns SMALLINT as a number but NUMERIC as a *string* — `hours_per_week`
+ * arrives as "2.0", not 2. Every row leaving this module goes through here, so
+ * a client can add the field up without getting string concatenation.
+ *
+ * Returning a raw row from one endpoint and a converted row from another is
+ * how that bug got in: the list was converted, the insert and update were not.
+ */
+function toItem(row: Record<string, unknown>): EcPlanItem {
+  return {
+    ...(row as unknown as EcPlanItem),
+    year: Number(row.year),
+    hours_per_week: row.hours_per_week === null ? null : Number(row.hours_per_week),
+  };
+}
+
 async function listItems(userId: string): Promise<EcPlanItem[]> {
   const result = await query(
     `SELECT id, title, year, category, why, first_step, hours_per_week, created_at
@@ -31,11 +47,7 @@ async function listItems(userId: string): Promise<EcPlanItem[]> {
      ORDER BY year, created_at`,
     [userId]
   );
-  return result.rows.map((r) => ({
-    ...r,
-    year: Number(r.year),
-    hours_per_week: r.hours_per_week === null ? null : Number(r.hours_per_week),
-  })) as EcPlanItem[];
+  return result.rows.map(toItem);
 }
 
 // ── GET /api/ec-plan ───────────────────────────────────────
@@ -163,7 +175,7 @@ router.post("/items", validate(itemSchema), async (req: Request, res: Response) 
         item.hours_per_week ?? null,
       ]
     );
-    res.status(201).json({ item: result.rows[0] });
+    res.status(201).json({ item: toItem(result.rows[0]) });
   } catch (err) {
     logger.error("Failed to add EC plan item", internalDetail(err));
     res.status(500).json({ error: "Couldn't add that item. Try again." });
@@ -202,7 +214,7 @@ router.patch("/items/:id", validate(patchSchema), async (req: Request, res: Resp
       res.status(404).json({ error: "Item not found" });
       return;
     }
-    res.json({ item: result.rows[0] });
+    res.json({ item: toItem(result.rows[0]) });
   } catch (err) {
     logger.error("Failed to update EC plan item", internalDetail(err));
     res.status(500).json({ error: "Couldn't save that change. Try again." });

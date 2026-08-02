@@ -41,6 +41,18 @@ function categoryLabel(c: EcCategory): string {
   return c.charAt(0).toUpperCase() + c.slice(1);
 }
 
+/**
+ * A cleared number input reads as "", and Number("") is 0 — which the generate
+ * endpoint rejects, since it requires at least one hour. Anything unparseable
+ * is NaN, which serializes to null and fails validation the same way. Clamp
+ * into the range the server accepts so the field can't produce a 400.
+ */
+function clampedNumber(raw: string, min: number, max: number, fallback: number): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(Math.max(n, min), max);
+}
+
 // ── Plan item card ───────────────────────────────────────────
 
 function PlanItemCard({
@@ -183,7 +195,7 @@ function GenerateForm({
             min={1}
             max={40}
             value={hoursPerWeek}
-            onChange={(e) => setHoursPerWeek(Number(e.target.value))}
+            onChange={(e) => setHoursPerWeek(clampedNumber(e.target.value, 1, 40, 1))}
             className="mt-1.5"
           />
         </div>
@@ -342,7 +354,7 @@ function AddActivityForm({
             min={0}
             max={40}
             value={hours}
-            onChange={(e) => setHours(Number(e.target.value))}
+            onChange={(e) => setHours(clampedNumber(e.target.value, 0, 40, 0))}
             className="mt-1.5"
           />
         </div>
@@ -382,8 +394,13 @@ export default function ECPlanPage() {
         setItems(res.items);
         setUsage(res.usage);
       })
-      .catch(() => {
-        if (!cancelled) setError("Couldn't load your plan. Refresh to try again.");
+      .catch((err) => {
+        if (cancelled) return;
+        setError(
+          err instanceof ApiError
+            ? `Couldn't load your plan — ${err.message}`
+            : "Couldn't load your plan. Refresh to try again."
+        );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -437,8 +454,15 @@ export default function ECPlanPage() {
           first_step: null,
         });
         setItems((cur) => [...cur, res.item]);
-      } catch {
-        setError("Couldn't add that activity. Try again.");
+      } catch (err) {
+        // Show what the server actually said. Replacing it with generic copy
+        // hid a "relation does not exist" behind "try again", which is not a
+        // thing the reader can act on.
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "Couldn't add that activity. Check your connection and try again."
+        );
       }
     },
     [token]
@@ -451,9 +475,13 @@ export default function ECPlanPage() {
       setItems((cur) => cur.filter((i) => i.id !== id));
       try {
         await api.deleteEcPlanItem(token, id);
-      } catch {
+      } catch (err) {
         setItems(previous);
-        setError("Couldn't remove that item. Try again.");
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "Couldn't remove that item. Check your connection and try again."
+        );
       }
     },
     [token, items]
