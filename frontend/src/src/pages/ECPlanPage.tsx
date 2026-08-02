@@ -1,5 +1,5 @@
 import { useId, useState, useEffect, useCallback } from "react";
-import { Sparkles, Trash2, Clock, ArrowRight, AlertTriangle, Loader2 } from "lucide-react";
+import { Sparkles, Trash2, Clock, ArrowRight, AlertTriangle, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   api,
   ApiError,
+  EC_CATEGORIES,
   type EcPlanItem,
   type EcCategory,
   type AiUsage,
@@ -229,6 +230,136 @@ function GenerateForm({
   );
 }
 
+// ── Add one by hand ──────────────────────────────────────────
+
+/* Without this the only way to change the plan is to regenerate it, which
+   costs a daily generation and throws away everything else in the plan to
+   change one line. */
+function AddActivityForm({
+  onAdd,
+}: {
+  onAdd: (item: {
+    title: string;
+    year: number;
+    category: EcCategory;
+    hours_per_week: number;
+  }) => Promise<void>;
+}) {
+  const titleId = useId();
+  const yearId = useId();
+  const catId = useId();
+  const hoursId = useId();
+
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [year, setYear] = useState(9);
+  const [category, setCategory] = useState<EcCategory>("leadership");
+  const [hours, setHours] = useState(2);
+  const [saving, setSaving] = useState(false);
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-[0.8125rem] font-semibold text-ink-2 transition-colors hover:border-ink-4/70 hover:bg-surface-2 hover:text-ink-1 focus-visible:outline-none focus-visible:[outline:2px_solid_hsl(var(--primary))] focus-visible:[outline-offset:2px]"
+      >
+        <Plus className="h-4 w-4" aria-hidden="true" />
+        Add an activity yourself
+      </button>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (!title.trim() || saving) return;
+        setSaving(true);
+        try {
+          await onAdd({ title: title.trim(), year, category, hours_per_week: hours });
+          setTitle("");
+          setOpen(false);
+        } finally {
+          setSaving(false);
+        }
+      }}
+      className="mt-4 rounded-2xl border border-border bg-surface-2 p-5"
+    >
+      <h2 className="font-display text-base font-bold tracking-[-0.02em] text-ink-1">
+        Add an activity
+      </h2>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <Label htmlFor={titleId}>What is it?</Label>
+          <Input
+            id={titleId}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Tutor algebra at the public library"
+            maxLength={255}
+            className="mt-1.5"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor={yearId}>Grade</Label>
+          <select
+            id={yearId}
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="mt-1.5 h-11 w-full rounded-lg border border-border bg-surface-3 px-3 text-sm text-ink-1 focus-visible:outline-none focus-visible:[outline:2px_solid_hsl(var(--primary))] focus-visible:[outline-offset:2px]"
+          >
+            {YEARS.map((y) => (
+              <option key={y} value={y}>
+                {YEAR_LABELS[y]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <Label htmlFor={catId}>Category</Label>
+          <select
+            id={catId}
+            value={category}
+            onChange={(e) => setCategory(e.target.value as EcCategory)}
+            className="mt-1.5 h-11 w-full rounded-lg border border-border bg-surface-3 px-3 text-sm text-ink-1 focus-visible:outline-none focus-visible:[outline:2px_solid_hsl(var(--primary))] focus-visible:[outline-offset:2px]"
+          >
+            {EC_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {categoryLabel(c)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <Label htmlFor={hoursId}>Hours a week</Label>
+          <Input
+            id={hoursId}
+            type="number"
+            min={0}
+            max={40}
+            value={hours}
+            onChange={(e) => setHours(Number(e.target.value))}
+            className="mt-1.5"
+          />
+        </div>
+      </div>
+
+      <div className="mt-5 flex items-center gap-2">
+        <Button type="submit" disabled={!title.trim() || saving}>
+          {saving ? "Adding…" : "Add to plan"}
+        </Button>
+        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────
 
 export default function ECPlanPage() {
@@ -290,6 +421,29 @@ export default function ECPlanPage() {
     [token]
   );
 
+  const handleAdd = useCallback(
+    async (item: {
+      title: string;
+      year: number;
+      category: EcCategory;
+      hours_per_week: number;
+    }) => {
+      if (!token) return;
+      setError(null);
+      try {
+        const res = await api.addEcPlanItem(token, {
+          ...item,
+          why: null,
+          first_step: null,
+        });
+        setItems((cur) => [...cur, res.item]);
+      } catch {
+        setError("Couldn't add that activity. Try again.");
+      }
+    },
+    [token]
+  );
+
   const handleDelete = useCallback(
     async (id: string) => {
       if (!token) return;
@@ -344,6 +498,8 @@ export default function ECPlanPage() {
           hasPlan={items.length > 0}
           onGenerate={handleGenerate}
         />
+
+        <AddActivityForm onAdd={handleAdd} />
 
         {loading ? (
           <p className="mt-8 text-sm text-ink-3">Loading your plan…</p>

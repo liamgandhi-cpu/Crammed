@@ -1,9 +1,15 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { CalendarRange, LogOut, ListChecks, CalendarDays, Award, Compass } from "lucide-react";
+import { CalendarRange, LogOut, ListChecks, CalendarDays, Compass } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 /**
- * The single app chrome for /today, /dashboard, /grades and /plan.
+ * The single app chrome for /today, /dashboard and /plan.
+ *
+ * Grades is deliberately absent. The page and its whole backend still exist —
+ * the planner reads the grades table to prioritize courses that are below
+ * target, and the StudentVUE sync still fills it — but a tab that reads empty
+ * for anyone who hasn't connected an account was the weakest thing in the nav.
+ * Restoring it is one entry here plus one route in App.tsx.
  *
  * Each of those pages previously carried its own copy of this nav, and the
  * three had drifted apart: different container widths (6xl / 7xl / full-bleed),
@@ -16,7 +22,6 @@ import { useAuth } from "@/context/AuthContext";
 const NAV_ITEMS = [
   { path: "/today", label: "Today", icon: ListChecks },
   { path: "/dashboard", label: "Schedule", icon: CalendarDays },
-  { path: "/grades", label: "Grades", icon: Award },
   { path: "/plan", label: "Plan", icon: Compass },
 ] as const;
 
@@ -36,7 +41,7 @@ export function Wordmark({ className = "" }: { className?: string }) {
         <CalendarRange className="h-4 w-4 text-primary-foreground" aria-hidden="true" />
       </span>
       <span className="font-display text-[1.0625rem] font-extrabold tracking-[-0.03em] text-ink-1">
-        AutoPlanner
+        Crammed
       </span>
     </Link>
   );
@@ -103,8 +108,8 @@ export default function AppNav() {
         </div>
       </header>
 
-      {/* Mobile sections. Lists every section — the old Today-page bar listed
-          only two, so Grades was unreachable on a phone from that screen. */}
+      {/* Mobile sections. Lists every section — the old per-page bars each
+          listed a different subset, so some were unreachable on a phone. */}
       <nav
         aria-label="Sections"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/90 backdrop-blur-xl md:hidden"

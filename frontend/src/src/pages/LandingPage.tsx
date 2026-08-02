@@ -22,8 +22,11 @@ import { Wordmark } from "@/components/AppNav";
 
 /* Real capabilities, not benefit-shaped filler. Everything named here is
    something the app actually ships — the integrations in ConnectAccountModal,
-   the planner in TodayPage, the timer in PomodoroTimer, the weighted GPA in
-   GradesPage. The old copy sold three generic virtues and mentioned none of it. */
+   the planner in TodayPage, the timer in PomodoroTimer, the four-year plan in
+   ECPlanPage. The old copy sold three generic virtues and mentioned none of it.
+
+   Card 04 used to advertise the weighted GPA in GradesPage. That page is no
+   longer in the nav, so the claim would have pointed at nothing. */
 const CAPABILITIES = [
   {
     n: "01",
@@ -42,8 +45,8 @@ const CAPABILITIES = [
   },
   {
     n: "04",
-    title: "Grades that do the math",
-    body: "Weighted GPA the way your school actually counts it — AP +1.0, Honors +0.5 — recalculated as marks land.",
+    title: "Four years, not four weeks",
+    body: "Build an extracurricular plan grade by grade — what to start, what to stick with, and the first concrete step for each one.",
   },
 ];
 
@@ -306,7 +309,7 @@ export default function LandingPage() {
               Log in
               <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
-            <span className="text-ink-4">© {new Date().getFullYear()} AutoPlanner</span>
+            <span className="text-ink-4">© {new Date().getFullYear()} Crammed</span>
           </div>
         </div>
       </footer>

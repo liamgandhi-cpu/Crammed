@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { api, type NewScheduleItem, type ScheduleItem, type Category, ApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useFocusRestore } from "@/hooks/useFocusRestore";
+import ClaudePromptCard, { SCHEDULE_PROMPT } from "@/components/ClaudePromptCard";
 
 interface Props {
   isOpen: boolean;
@@ -328,6 +329,13 @@ export default function ScheduleInputModal({ isOpen, onClose, onSaved }: Props) 
                 <div className="space-y-5">
                   {!parsedItems && (
                     <>
+                      <ClaudePromptCard
+                        title="Don't have it as text?"
+                        description="Most schedules live in a screenshot or a PDF. Copy this prompt into Claude with whatever you've got, and it'll come back in the format below."
+                        prompt={SCHEDULE_PROMPT}
+                        returnHint="the box below"
+                      />
+
                       <div>
                         <label htmlFor="ai-paste" className="block text-sm font-medium mb-2 text-foreground">
                           Paste your schedule
