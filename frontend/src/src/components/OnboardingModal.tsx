@@ -98,8 +98,8 @@ function ConnectStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => voi
   if (result) {
     return (
       <div className="flex flex-col items-center gap-5 py-4 text-center animate-fade-slide-up">
-        <div className="h-16 w-16 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-          <CheckCircle2 className="h-8 w-8 text-green-500" />
+        <div className="h-16 w-16 rounded-2xl bg-cat-free/10 border border-cat-free/20 flex items-center justify-center">
+          <CheckCircle2 className="h-8 w-8 text-cat-free" />
         </div>
         <div>
           <h3 className="font-display text-lg font-bold">Schedule Imported!</h3>
@@ -301,7 +301,7 @@ function PrefsStep({ onNext }: { onNext: () => void }) {
               }`}
             >
               <div className="font-medium text-sm">{s.label}</div>
-              <div className="text-[11px] text-muted-foreground mt-0.5">{s.desc}</div>
+              <div className="text-micro text-muted-foreground mt-0.5">{s.desc}</div>
             </button>
           ))}
         </div>
@@ -324,8 +324,8 @@ function PrefsStep({ onNext }: { onNext: () => void }) {
 function DoneStep({ onComplete }: { onComplete: () => void }) {
   return (
     <div className="flex flex-col items-center gap-6 py-4 text-center animate-fade-slide-up">
-      <div className="h-20 w-20 rounded-3xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-        <Sparkles className="h-10 w-10 text-green-400" />
+      <div className="h-20 w-20 rounded-3xl bg-cat-free/10 border border-cat-free/20 flex items-center justify-center">
+        <Sparkles className="h-10 w-10 text-cat-free" />
       </div>
       <div className="space-y-2">
         <h2 className="font-display text-2xl font-bold">You're all set!</h2>
@@ -336,14 +336,14 @@ function DoneStep({ onComplete }: { onComplete: () => void }) {
       </div>
 
       <div className="w-full space-y-2 text-left text-sm text-muted-foreground">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-1">What's next</p>
+        <p className="kicker text-ink-2 mb-1">What's next</p>
         {[
           "Check Today's plan — your first AI plan is ready",
           "Visit Dashboard to see your full schedule",
           "Open Settings to connect Schoology or adjust reminders",
         ].map((tip) => (
           <div key={tip} className="flex items-start gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
+            <CheckCircle2 className="h-4 w-4 text-cat-free flex-shrink-0 mt-0.5" />
             <span>{tip}</span>
           </div>
         ))}

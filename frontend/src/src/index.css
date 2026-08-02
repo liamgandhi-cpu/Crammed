@@ -5,15 +5,15 @@
 @layer base {
   :root {
     --background: 220 20% 4%;
-    --foreground: 220 10% 92%;
+    --foreground: 220 15% 97%;
     --card: 220 16% 8%;
-    --card-foreground: 220 10% 92%;
+    --card-foreground: 220 15% 97%;
     --primary: 25 95% 53%;
     --primary-foreground: 220 16% 8%;
     --secondary: 220 14% 16%;
     --secondary-foreground: 220 10% 85%;
     --muted: 220 14% 12%;
-    --muted-foreground: 220 12% 59%;
+    --muted-foreground: 220 10% 62%;
     --accent: 25 95% 53%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
@@ -23,6 +23,31 @@
     --ring: 25 95% 40%;
     --radius: 0.625rem;
 
+    /* Text hierarchy. Four steps so a card can rank title / value / label /
+       ornament without reaching for opacity modifiers — the old pages stacked
+       `text-muted-foreground/70`, `/60`, `/50` and `/40` to fake this, which
+       is how several labels ended up under 3:1.
+       Measured against --background: ink-1 18.5:1, ink-2 11.5:1, ink-3 7.1:1,
+       ink-4 4.9:1. All four clear AA (4.5:1) for body text at any size, so the
+       12px metadata that uses ink-4 is compliant. ink-4 sat at 48% L and
+       measured 4.41:1 — passing for large text but a hair short for the small
+       labels it is actually used on; 51% clears it outright. */
+    --ink-1: 220 15% 97%;
+    --ink-2: 220 10% 78%;
+    --ink-3: 220 10% 62%;
+    --ink-4: 220 8% 51%;
+
+    /* Categorical accents — one family, chosen together. Every hue sits at
+       62–68% L so none of them out-shouts the others and all clear 7:1 on
+       the ground. `class` is the brand orange, so the primary action colour
+       and the busiest schedule category are deliberately the same ink. */
+    --cat-class: 25 95% 60%;
+    --cat-study: 205 90% 65%;
+    --cat-free: 150 60% 55%;
+    --cat-due: 348 85% 66%;
+    --cat-week: 265 80% 72%;
+    --cat-warn: 40 95% 60%;
+
     /* Surface tint ladder — the primary depth cue on a dark UI.
        Higher planes are LIGHTER; shadow alone can't separate them
        against a near-black page. Pairs with shadow-elev-* in
@@ -30,6 +55,17 @@
     --surface-1: 220 16% 8%;    /* = --card, resting */
     --surface-2: 220 15% 10%;   /* raised: cards, popovers */
     --surface-3: 220 14% 12.5%; /* hovered / focused */
+
+    /* Hairline used as structure rather than as a box edge. Slightly hotter
+       than --border because an editorial rule is meant to be seen. */
+    --rule: 220 13% 20%;
+
+    /* Tells the engine to render every native control dark. Without it the
+       UA paints checkboxes as white boxes, date pickers with white panels and
+       white calendar popups, and select menus in light chrome — all of which
+       this app has, and all of which were flashing white against a near-black
+       page. One declaration, and it fixes them everywhere at once. */
+    color-scheme: dark;
   }
 
   * {
@@ -41,9 +77,18 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
+  /* Tabular figures everywhere a number can change in place — clocks,
+     counters, grade percentages. Without this the layout twitches on every
+     tick because DM Sans defaults to proportional digits. */
+  time,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
     background: hsl(var(--background));
@@ -82,6 +127,83 @@
   }
   .section-header-line {
     @apply flex-1 h-px bg-border/60;
+  }
+
+  /* ── Editorial devices ───────────────────────────────────────────
+     The old pages had exactly one structural idea: put it in a
+     `bg-card border border-border rounded-xl` box. Four of those stacked
+     down a page is what reads as generated. These give a section other ways
+     to declare itself — a rule, a kicker, a number — so weight can vary
+     without every block becoming another card.
+     ---------------------------------------------------------------- */
+
+  /* Uppercase eyebrow. Does the labelling work that oversized centred
+     headings were doing, at a fraction of the visual cost. */
+  .kicker {
+    @apply font-display text-kicker uppercase text-ink-3;
+  }
+
+  /* Kicker with a leading rule — marks the start of a section without a box. */
+  .kicker-rule {
+    @apply flex items-center gap-3 font-display text-kicker uppercase text-ink-3;
+  }
+  .kicker-rule::after {
+    content: "";
+    @apply flex-1 h-px;
+    background-color: hsl(var(--rule));
+  }
+
+  /* Structural hairline. */
+  .rule {
+    @apply h-px w-full border-0;
+    background-color: hsl(var(--rule));
+  }
+
+  /* A panel with no border and no radius that separates by tint alone.
+     Use when a card would be the fourth box in a row. */
+  .panel-flat {
+    background-color: hsl(var(--surface-2));
+  }
+
+  /* Ruled list: rows divided by hairlines instead of each row being a card.
+     Replaces the "stack of tiny bordered pills" pattern. */
+  .ruled > * + * {
+    border-top: 1px solid hsl(var(--rule) / 0.7);
+  }
+
+  /* Editorial figure — the oversized number that anchors a stat.
+     Bricolage at display weight with tabular figures so it never reflows. */
+  .figure {
+    @apply font-display font-extrabold tracking-tight text-ink-1;
+    font-variant-numeric: tabular-nums;
+    line-height: 0.95;
+  }
+
+  /* Accent bar used to open a section, in place of a centred heading. */
+  .accent-bar {
+    @apply block h-1 w-12 rounded-full bg-primary;
+  }
+}
+
+@layer utilities {
+  /* Used by the horizontally-scrolling exam strip and stats pills. It was
+     referenced in TodayPage but never actually defined anywhere, so those
+     rows have been showing a scrollbar this whole time. */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Balanced headline wrapping — stops a display line from orphaning its
+     last word. Progressive: ignored by browsers without it. */
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
   }
 }
 

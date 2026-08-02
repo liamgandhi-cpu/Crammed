@@ -4,7 +4,8 @@ dist
 .vercel
 .turbo
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 *.log
 .DS_Store
+tsconfig.tsbuildinfo

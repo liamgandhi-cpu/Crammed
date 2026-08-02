@@ -79,11 +79,11 @@ export default function EditItemModal({ item, onClose, onSave }: Props) {
             className="dialog-surface pointer-events-auto bg-card border border-border rounded-xl w-full max-w-md flex flex-col animate-dialog-in"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-border">
-              <Dialog.Title className="font-display text-base font-bold">Edit Class</Dialog.Title>
+            <div className="flex items-start justify-between gap-4 border-b border-border p-5">
+              <Dialog.Title className="font-display text-display-4 text-ink-1">Edit class</Dialog.Title>
               <Dialog.Close
                 aria-label="Close"
-                className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-ink-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <X className="h-4 w-4" />
               </Dialog.Close>
@@ -197,10 +197,10 @@ export default function EditItemModal({ item, onClose, onSave }: Props) {
                   </Label>
                   <div className="grid grid-cols-4 gap-2" role="group" aria-labelledby="edit-exam-importance-label">
                     {[
-                      { label: "Low",      mins: 60,  color: "bg-green-500/15 text-green-400 border-green-500/30" },
-                      { label: "Medium",   mins: 120, color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
-                      { label: "High",     mins: 240, color: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
-                      { label: "Critical", mins: 360, color: "bg-red-500/15 text-red-400 border-red-500/30" },
+                      { label: "Low",      mins: 60,  color: "bg-cat-free/15 text-cat-free border-cat-free/30" },
+                      { label: "Medium",   mins: 120, color: "bg-cat-warn/15 text-cat-warn border-cat-warn/30" },
+                      { label: "High",     mins: 240, color: "bg-cat-class/15 text-cat-class border-cat-class/30" },
+                      { label: "Critical", mins: 360, color: "bg-cat-due/15 text-cat-due border-cat-due/30" },
                     ].map(({ label, mins, color }) => (
                       <button
                         key={label}
@@ -214,7 +214,7 @@ export default function EditItemModal({ item, onClose, onSave }: Props) {
                         }`}
                       >
                         {label}
-                        <span className="block text-[10px] font-normal opacity-75 mt-0.5">
+                        <span className="block text-micro font-normal opacity-75 mt-0.5">
                           {mins >= 60 ? `${mins / 60}h` : `${mins}m`}
                         </span>
                       </button>

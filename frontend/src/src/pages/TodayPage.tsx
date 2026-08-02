@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  CalendarRange, LogOut, ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight,
   RefreshCw, Settings, Brain, AlertTriangle, BookOpen,
-  Clock, Zap, Coffee, Calendar, Sunrise, Sun, Moon,
-  Plus, CheckSquare, Square, X, ListTodo, Award, Bell, Mail, Play,
+  Clock, Coffee, Calendar, Sunrise, Sun, Moon,
+  Plus, CheckSquare, Square, X, Bell, Mail, Play,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import AppNav, { APP_CONTAINER, MobileNavSpacer } from "@/components/AppNav";
 import { useAuth } from "@/context/AuthContext";
 import {
   api,
@@ -57,13 +58,16 @@ function formatTime12(t: string): string {
   return `${displayH}:${String(m).padStart(2, "0")} ${period}`;
 }
 
+/* No emoji. The greeting is now set as a kicker — uppercase and letterspaced —
+   and emoji in that treatment read as noise rather than warmth. The wording
+   carries the time of day on its own. */
 function getGreeting(name: string): string {
   const h = new Date().getHours();
-  if (h < 5) return `Still up, ${name}? 🌙`;
-  if (h < 12) return `Good morning, ${name} ☀️`;
-  if (h < 17) return `Good afternoon, ${name} 👋`;
-  if (h < 21) return `Good evening, ${name} 🌆`;
-  return `Good night, ${name} 🌙`;
+  if (h < 5) return `Still up, ${name}`;
+  if (h < 12) return `Good morning, ${name}`;
+  if (h < 17) return `Good afternoon, ${name}`;
+  if (h < 21) return `Good evening, ${name}`;
+  return `Good night, ${name}`;
 }
 
 type Section = "morning" | "afternoon" | "evening";
@@ -89,86 +93,125 @@ function RingChart({
   value: number; max: number; color: string; label: string; size?: number;
 }) {
   const pct = max === 0 ? 0 : Math.min(1, value / max);
-  const r = (size / 2) - 7;
+  const r = (size / 2) - 5;
   const circ = 2 * Math.PI * r;
   const cx = size / 2;
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <div className="relative">
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          <circle cx={cx} cy={cx} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
-          <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth="6"
-            strokeDasharray={`${pct * circ} ${circ}`}
-            strokeLinecap="round"
-            transform={`rotate(-90 ${cx} ${cx})`}
-          />
-        </svg>
-        <span className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-sm font-bold leading-none" style={{ color }}>
-            {value}
-          </span>
-          <span className="text-[9px] text-muted-foreground leading-none mt-0.5">/{max}</span>
-        </span>
-      </div>
-      <span className="text-[10px] text-muted-foreground text-center leading-tight">{label}</span>
+      {/* The count used to be printed inside the ring at 14px with a 9px "/max"
+          under it — unreadable, and duplicated wherever the ring was used.
+          The ring is now purely the gauge; the number is set beside it at
+          display size by the caller. */}
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        role="img"
+        aria-label={`${value} of ${max} blocks done`}
+      >
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="5" />
+        <circle
+          cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth="5"
+          strokeDasharray={`${pct * circ} ${circ}`}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${cx} ${cx})`}
+          style={{ transition: "stroke-dasharray 400ms cubic-bezier(0,0,0.2,1)" }}
+        />
+      </svg>
+      {label && <span className="text-micro leading-tight text-ink-3">{label}</span>}
     </div>
   );
 }
 
 // ── Stats sidebar ──────────────────────────────────────────
 
+/**
+ * Sidebar section wrapper.
+ *
+ * All four sidebar cards previously opened with the same construction: a
+ * 24px tinted icon chip, then `font-display text-sm font-semibold`. Four of
+ * those stacked vertically is the single most template-like thing on this
+ * page — the chips carried no information and the titles never rose above
+ * 14px, so nothing in the column ranked against anything else. A kicker over
+ * a rule labels the section for free and leaves the weight for the data.
+ */
+function SidebarSection({
+  title, action, children,
+}: {
+  title: string; action?: React.ReactNode; children: React.ReactNode;
+}) {
+  return (
+    <section className="surface-raised p-4">
+      <div className="mb-3.5 flex items-center gap-3 border-b border-[hsl(var(--rule))] pb-2.5">
+        <h2 className="kicker">{title}</h2>
+        {action && <div className="ml-auto">{action}</div>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 function StatsCard({ plan }: { plan: DailyPlan }) {
   const total = plan.blocks.length;
   const done = plan.blocks.filter((b) => b.completed).length;
 
+  /* Categorical tokens, not the loose hex set this used to carry
+     (#f97316 / #60a5fa / #22c55e / #f43f5e / #a855f7) — five values that
+     appeared nowhere else and drifted from the pills a few lines below,
+     where "study" was #38bdf8 rather than #60a5fa for no reason. */
+  const rows = [
+    { icon: BookOpen, label: "Class hours",   value: `${plan.stats.classHours}h`,               tone: "text-cat-class" },
+    { icon: Brain,    label: "Study hours",   value: `${plan.stats.studyHours}h`,               tone: "text-cat-study" },
+    { icon: Coffee,   label: "Free + breaks", value: `${plan.stats.freeHours}h`,                tone: "text-cat-free" },
+    { icon: Calendar, label: "Due today",     value: String(plan.stats.assignmentsDueToday),    tone: "text-cat-due" },
+    { icon: Clock,    label: "Due this week", value: String(plan.stats.assignmentsDueThisWeek), tone: "text-cat-week" },
+  ];
+
   return (
-    <div className="surface-raised p-5 space-y-5">
-      <div className="flex items-center gap-2">
-        <div className="h-6 w-6 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <Zap className="h-3.5 w-3.5 text-primary" />
+    <SidebarSection title="Today">
+      <div className="mb-4 flex items-center gap-4">
+        <RingChart value={done} max={total} color="hsl(var(--primary))" label="" size={64} />
+        <div className="min-w-0">
+          <p className="figure text-3xl">
+            {done}
+            <span className="text-ink-4">/{total}</span>
+          </p>
+          <p className="mt-1 text-micro text-ink-3">blocks done</p>
         </div>
-        <h2 className="font-display text-sm font-semibold">Today's Stats</h2>
       </div>
 
-      {/* Progress ring */}
-      <div className="flex justify-center">
-        <RingChart value={done} max={total} color="hsl(var(--primary))" label="Blocks done" size={88} />
-      </div>
-
-      {/* Stat rows */}
-      {[
-        { icon: BookOpen, label: "Class hours",   value: `${plan.stats.classHours}h`,                   color: "#f97316" },
-        { icon: Brain,    label: "Study hours",   value: `${plan.stats.studyHours}h`,                   color: "#60a5fa" },
-        { icon: Coffee,   label: "Free + breaks", value: `${plan.stats.freeHours}h`,                    color: "#22c55e" },
-        { icon: Calendar, label: "Due today",      value: String(plan.stats.assignmentsDueToday),        color: "#f43f5e" },
-        { icon: Clock,    label: "Due this week",  value: String(plan.stats.assignmentsDueThisWeek),     color: "#a855f7" },
-      ].map((s) => (
-        <div key={s.label} className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <s.icon className="h-3.5 w-3.5" style={{ color: s.color }} />
-            {s.label}
+      <dl className="ruled">
+        {rows.map((s) => (
+          <div key={s.label} className="flex items-center justify-between py-2">
+            <dt className="flex items-center gap-2 text-sm text-ink-3">
+              <s.icon className={`h-4 w-4 ${s.tone}`} aria-hidden="true" />
+              {s.label}
+            </dt>
+            <dd className={`text-sm font-bold ${s.tone}`} data-numeric>{s.value}</dd>
           </div>
-          <span className="text-xs font-bold" style={{ color: s.color }}>{s.value}</span>
-        </div>
-      ))}
+        ))}
+      </dl>
 
-      {/* Upcoming exams */}
       {plan.stats.upcomingExams.length > 0 && (
-        <div className="space-y-1.5 pt-2 border-t border-border">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Upcoming Exams</p>
-          {plan.stats.upcomingExams.slice(0, 4).map((e, i) => (
-            <div key={i} className="flex items-center justify-between gap-2">
-              <span className="text-xs text-foreground truncate">{e.title}</span>
-              <span className={`text-[11px] font-bold flex-shrink-0 ${
-                e.daysUntil <= 2 ? "text-red-400" : e.daysUntil <= 7 ? "text-yellow-400" : "text-muted-foreground"
-              }`}>
-                {e.daysUntil === 0 ? "Today!" : e.daysUntil === 1 ? "Tomorrow" : `${e.daysUntil}d`}
-              </span>
-            </div>
-          ))}
+        <div className="mt-4 border-t border-[hsl(var(--rule))] pt-3">
+          <p className="kicker mb-2">Upcoming exams</p>
+          <ul className="space-y-1.5">
+            {plan.stats.upcomingExams.slice(0, 4).map((e, i) => (
+              <li key={i} className="flex items-center justify-between gap-2">
+                <span className="truncate text-sm text-ink-2">{e.title}</span>
+                <span
+                  className={`shrink-0 text-micro font-bold ${
+                    e.daysUntil <= 2 ? "text-cat-due" : e.daysUntil <= 7 ? "text-cat-warn" : "text-ink-4"
+                  }`}
+                >
+                  {e.daysUntil === 0 ? "Today" : e.daysUntil === 1 ? "Tomorrow" : `${e.daysUntil}d`}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
-    </div>
+    </SidebarSection>
   );
 }
 
@@ -178,18 +221,17 @@ function StatsPills({ plan }: { plan: DailyPlan }) {
   const total = plan.blocks.length;
   const done = plan.blocks.filter((b) => b.completed).length;
   const pills = [
-    { label: `${done}/${total} done`,              color: "hsl(var(--primary))" },
-    { label: `${plan.stats.classHours}h class`,    color: "#f97316" },
-    { label: `${plan.stats.studyHours}h study`,    color: "#38bdf8" },
-    { label: `${plan.stats.assignmentsDueToday} due today`, color: "#f43f5e" },
+    { label: `${done}/${total} done`, tone: "text-primary border-primary/35 bg-primary/10" },
+    { label: `${plan.stats.classHours}h class`, tone: "text-cat-class border-cat-class/35 bg-cat-class/10" },
+    { label: `${plan.stats.studyHours}h study`, tone: "text-cat-study border-cat-study/35 bg-cat-study/10" },
+    { label: `${plan.stats.assignmentsDueToday} due today`, tone: "text-cat-due border-cat-due/35 bg-cat-due/10" },
   ];
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+    <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
       {pills.map((p) => (
         <span
           key={p.label}
-          className="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full border"
-          style={{ color: p.color, borderColor: `${p.color}40`, backgroundColor: `${p.color}12` }}
+          className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-micro font-semibold ${p.tone}`}
         >
           {p.label}
         </span>
@@ -226,7 +268,7 @@ function isSummerSession(dateStr: string, mode: string | null | undefined): bool
 }
 
 export default function TodayPage() {
-  const { user, token, logout } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const [dateStr, setDateStr] = useState(toDateStr(new Date()));
   const [plan, setPlan] = useState<DailyPlan | null>(null);
@@ -423,38 +465,37 @@ export default function TodayPage() {
   }, { morning: [], afternoon: [], evening: [] });
 
   const firstName = user?.email?.split("@")[0] ?? "there";
-  const initials = (user?.email?.[0] ?? "U").toUpperCase();
 
   // ── Closure components ──────────────────────────────────
 
   function WeeklySummaryCard() {
     if (!weeklySummary) return null;
+    const stats = [
+      { label: "Classes", value: String(weeklySummary.classCount) },
+      { label: "Assignments", value: String(weeklySummary.assignmentCount) },
+      { label: "Focus hrs", value: `${Math.round(weeklySummary.focusStats.totalSeconds / 3600)}h` },
+      { label: "Streak", value: `${weeklySummary.focusStats.streak}d` },
+    ];
     return (
-      <div className="surface-raised p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-md bg-muted flex items-center justify-center">
-            <Award className="h-3.5 w-3.5 text-muted-foreground" />
-          </div>
-          <h2 className="font-display text-sm font-semibold">Weekly Summary</h2>
-          <span className="text-[10px] text-muted-foreground ml-auto">{weeklySummary.weekRange}</span>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { label: "Classes", value: weeklySummary.classCount },
-            { label: "Assignments", value: weeklySummary.assignmentCount },
-            { label: "Focus hrs", value: `${Math.round(weeklySummary.focusStats.totalSeconds / 3600)}h` },
-            { label: "Streak", value: `${weeklySummary.focusStats.streak}d` },
-          ].map((s) => (
-            <div key={s.label} className="bg-muted/30 rounded-xl p-2.5 text-center">
-              <div className="text-sm font-bold text-foreground">{s.value}</div>
-              <div className="text-[10px] text-muted-foreground">{s.label}</div>
+      <SidebarSection
+        title="This week"
+        action={<span className="text-micro text-ink-4">{weeklySummary.weekRange}</span>}
+      >
+        {/* Figures at display size on a plain 2×2, rather than four 14px
+            numbers each boxed in its own rounded tile. The number is the
+            content here; the tile was chrome around nothing. */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+          {stats.map((s) => (
+            <div key={s.label}>
+              <p className="figure text-2xl">{s.value}</p>
+              <p className="mt-1 text-micro text-ink-3">{s.label}</p>
             </div>
           ))}
         </div>
         <Button
           size="sm"
           variant="outline"
-          className="w-full h-7 text-xs gap-1.5"
+          className="mt-4 w-full gap-1.5"
           disabled={sendingEmail}
           onClick={async () => {
             if (!token) return;
@@ -463,76 +504,82 @@ export default function TodayPage() {
             setSendingEmail(false);
           }}
         >
-          <Mail className="h-3 w-3" />
+          <Mail className="h-3.5 w-3.5" aria-hidden="true" />
           {sendingEmail ? "Sending…" : "Email me this summary"}
         </Button>
-      </div>
+      </SidebarSection>
     );
   }
 
   function DueTodayCard() {
     if (classesToday.length === 0 && dueTodayItems.length === 0) return null;
     return (
-      <div className="surface-raised p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-md bg-muted flex items-center justify-center">
-            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-          </div>
-          <h2 className="font-display text-sm font-semibold">Today's Focus</h2>
-        </div>
+      <SidebarSection title="Today's focus">
         {classesToday.length > 0 && (
-          <div className="space-y-1.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Classes</p>
-            {classesToday.map((c) => (
-              <div key={c.id} className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
-                <span className="text-xs truncate flex-1">{c.title}</span>
-                {c.start_time && (
-                  <span className="text-[10px] text-muted-foreground flex-shrink-0 font-mono">
-                    {formatTime12(c.start_time)}
-                  </span>
-                )}
-              </div>
-            ))}
+          <div className="mb-4">
+            <p className="mb-2 text-micro font-semibold text-ink-4">Classes</p>
+            <ul className="space-y-2">
+              {classesToday.map((c) => (
+                <li key={c.id} className="flex items-center gap-2.5">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: c.color }}
+                    aria-hidden="true"
+                  />
+                  <span className="flex-1 truncate text-sm text-ink-2">{c.title}</span>
+                  {c.start_time && (
+                    <time className="shrink-0 font-mono text-micro text-ink-4">
+                      {formatTime12(c.start_time)}
+                    </time>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
         {dueTodayItems.length > 0 && (
-          <div className="space-y-1.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Due Today</p>
-            {dueTodayItems.map((a) => (
-              <div key={a.id} className="flex items-center gap-2">
-                <button
-                  onClick={() => handleToggleAssignment(a.id, !a.completed)}
-                  className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
-                >
-                  {a.completed
-                    ? <CheckSquare className="h-3.5 w-3.5 text-primary" />
-                    : <Square className="h-3.5 w-3.5" />}
-                </button>
-                <span className={`text-xs truncate ${a.completed ? "line-through text-muted-foreground" : ""}`}>{a.title}</span>
-              </div>
-            ))}
+          <div>
+            <p className="mb-2 text-micro font-semibold text-ink-4">Due today</p>
+            <ul className="space-y-1">
+              {dueTodayItems.map((a) => (
+                <li key={a.id}>
+                  {/* The whole row is the control now. It used to be a bare
+                      14px icon — well under the 24px minimum target, and with
+                      no accessible name at all. */}
+                  <button
+                    onClick={() => handleToggleAssignment(a.id, !a.completed)}
+                    aria-pressed={a.completed}
+                    className="flex w-full items-center gap-2.5 rounded-md py-1.5 text-left transition-colors hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {a.completed
+                      ? <CheckSquare className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                      : <Square className="h-4 w-4 shrink-0 text-ink-4" aria-hidden="true" />}
+                    <span className={`truncate text-sm ${a.completed ? "text-ink-4 line-through" : "text-ink-2"}`}>
+                      {a.title}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
-      </div>
+      </SidebarSection>
     );
   }
 
   function TodoListCard() {
     const completedCount = todos.filter((t) => t.completed).length;
     return (
-      <div className="surface-raised p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <ListTodo className="h-3.5 w-3.5 text-primary" />
-          </div>
-          <h2 className="font-display text-sm font-semibold">To-Do</h2>
-          {todos.length > 0 && (
-            <span className="text-[10px] text-muted-foreground bg-muted border border-border px-1.5 py-0.5 rounded-full ml-auto">
+      <SidebarSection
+        title="To-do"
+        action={
+          todos.length > 0 ? (
+            <span className="text-micro text-ink-4" data-numeric>
               {completedCount}/{todos.length}
             </span>
-          )}
-        </div>
+          ) : undefined
+        }
+      >
         <form
           onSubmit={(e) => { e.preventDefault(); handleAddTodo(); }}
           onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
@@ -543,137 +590,115 @@ export default function TodayPage() {
             const text = e.dataTransfer.getData("text/plain");
             if (text) handleAddTodo(text);
           }}
-          className={`flex gap-2 rounded-xl p-1 transition-all ${isDragOver ? "ring-2 ring-primary/60 bg-primary/[0.07]" : ""}`}
+          className={`flex gap-2 rounded-lg transition-colors ${
+            isDragOver ? "bg-primary/[0.07] outline outline-2 outline-primary/60" : ""
+          }`}
         >
+          <label htmlFor="todo-input" className="sr-only">Add a task</label>
           <Input
+            id="todo-input"
             value={todoInput}
             onChange={(e) => setTodoInput(e.target.value)}
             placeholder={isDragOver ? "Drop here…" : "Add a task…"}
-            className="flex-1 h-8 text-xs"
+            className="h-9 flex-1"
           />
-          <Button type="submit" size="sm" className="h-8 px-2.5" disabled={!todoInput.trim()}>
-            <Plus className="h-3.5 w-3.5" />
+          <Button type="submit" size="sm" className="h-9 w-9 shrink-0 px-0" disabled={!todoInput.trim()} aria-label="Add task">
+            <Plus className="h-4 w-4" aria-hidden="true" />
           </Button>
         </form>
+
         {todos.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-2">No tasks yet. Add one above.</p>
+          /* Encouraging, and it says what the section is for — the old copy
+             ("No tasks yet. Add one above.") only restated the emptiness. */
+          <p className="py-3 text-sm leading-relaxed text-ink-3">
+            Nothing on the list. Anything that isn't a class or an assignment
+            goes here.
+          </p>
         ) : (
-          <ul className="space-y-0.5 max-h-64 overflow-y-auto">
+          <ul className="ruled -mx-1 mt-3 max-h-64 overflow-y-auto">
             {todos.map((todo) => (
-              <li key={todo.id} className="flex items-center gap-2 group rounded-lg px-1 py-1.5 hover:bg-muted/40 transition-colors">
-                <button onClick={() => handleToggleTodo(todo.id, !todo.completed)} className="flex-shrink-0">
+              <li key={todo.id} className="group flex items-center gap-1">
+                <button
+                  onClick={() => handleToggleTodo(todo.id, !todo.completed)}
+                  aria-pressed={todo.completed}
+                  className="flex flex-1 items-center gap-2.5 rounded-md px-1 py-2 text-left transition-colors hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
                   {todo.completed
-                    ? <CheckSquare className="h-3.5 w-3.5 text-primary" />
-                    : <Square className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-muted-foreground" />}
+                    ? <CheckSquare className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    : <Square className="h-4 w-4 shrink-0 text-ink-4" aria-hidden="true" />}
+                  <span className={`flex-1 text-sm leading-snug ${todo.completed ? "text-ink-4 line-through" : "text-ink-2"}`}>
+                    {todo.text}
+                  </span>
                 </button>
-                <span className={`flex-1 text-xs leading-snug ${todo.completed ? "line-through text-muted-foreground/50" : ""}`}>
-                  {todo.text}
-                </span>
+                {/* Was `opacity-0 group-hover:opacity-100` — invisible and
+                    unreachable for keyboard and touch users alike. It now also
+                    reveals on focus, and carries a name. */}
                 <button
                   onClick={() => handleDeleteTodo(todo.id)}
-                  className="opacity-0 group-hover:opacity-100 h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-destructive transition-all rounded-md hover:bg-destructive/10"
+                  aria-label={`Delete task: ${todo.text}`}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-4 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </SidebarSection>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
 
-      {/* Nav */}
-      <nav className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-              <CalendarRange className="h-4 w-4 text-primary" />
-            </div>
-            <span className="font-display text-lg font-bold tracking-tight hidden sm:block">AutoPlanner</span>
-          </Link>
-
-          {/* Tab bar */}
-          <div className="flex items-center gap-1 bg-muted/40 rounded-xl p-1 border border-border/50">
-            <button
-              onClick={() => navigate("/today")}
-              aria-current="page"
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-card border border-border/60 text-foreground shadow-sm"
-            >
-              Today's Plan
-            </button>
-            <button
-              onClick={() => navigate("/dashboard")}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-muted-foreground hover:text-foreground"
-            >
-              Schedule
-            </button>
-            <button
-              onClick={() => navigate("/grades")}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-muted-foreground hover:text-foreground"
-            >
-              Grades
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center">
-              <span className="text-xs font-bold text-primary">{initials}</span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={logout} className="gap-1.5">
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Log out</span>
-            </Button>
-          </div>
-        </div>
-      </nav>
+      <AppNav />
 
       {/* Main */}
-      <main className={`max-w-6xl mx-auto px-4 sm:px-6 py-6 ${isSummer ? "summer-surface" : ""}`}>
+      <main className={`${APP_CONTAINER} py-8 ${isSummer ? "summer-surface" : ""}`}>
 
-        {/* Greeting + date nav */}
-        <div className="flex items-start justify-between mb-5 gap-4 flex-wrap">
-          <div>
+        {/* Masthead.
+            The old header had this inverted: an `text-2xl` greeting that was
+            explicitly decorative sat on top, while the actual <h1> — the date,
+            the one thing identifying what you're looking at — was rendered at
+            text-base in muted grey underneath it. The greeting is now the
+            kicker it always was, and the date gets the display size. */}
+        <header className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+          <div className="min-w-0">
             {isToday && (
-              <p className="text-xl sm:text-2xl font-display font-bold mb-0.5">
-                {getGreeting(firstName)}
-              </p>
+              <p className="kicker mb-2.5">{getGreeting(firstName)}</p>
             )}
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => navigateDate(-1)}
-                aria-label="Previous day"
-                className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              {/* The page's h1: always rendered, and it identifies which day
-                  is shown. The greeting above is larger but decorative, and
-                  only appears for today — it can't carry the heading. */}
-              <h1 className="font-display text-base sm:text-lg font-semibold text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+              <h1 className="font-display text-display-3 text-ink-1">
                 {formatDisplayDate(dateStr)}
               </h1>
               {isSummer && (
-                <span className="summer-chip ml-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide">
-                  SUMMER
+                <span className="summer-chip rounded-full border px-2.5 py-1 text-kicker uppercase">
+                  Summer
                 </span>
               )}
+            </div>
+
+            <div className="mt-3 flex items-center gap-1">
+              <button
+                onClick={() => navigateDate(-1)}
+                aria-label="Previous day"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-ink-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              </button>
               <button
                 onClick={() => navigateDate(1)}
                 aria-label="Next day"
-                className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-ink-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </button>
               {!isToday && (
                 <button
                   onClick={() => setDateStr(toDateStr(new Date()))}
-                  className="ml-1 text-xs text-primary hover:underline"
+                  className="ml-1.5 rounded-sm text-sm font-medium text-primary underline decoration-primary/40 underline-offset-4 transition-colors hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
-                  Today →
+                  Back to today
                 </button>
               )}
             </div>
@@ -681,24 +706,27 @@ export default function TodayPage() {
 
           <div className="flex items-center gap-2">
             {plan?.generatedAt && (
-              <span className="text-xs text-muted-foreground hidden sm:block">
-                {formatRelativeTime(plan.generatedAt)}
+              <span className="hidden text-micro text-ink-4 sm:block">
+                Updated {formatRelativeTime(plan.generatedAt)}
               </span>
             )}
-            <Button variant="outline" size="sm" onClick={() => setPrefsOpen(true)}>
-              <Settings className="h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={() => setPrefsOpen(true)} aria-label="Preferences">
+              <Settings className="h-4 w-4" aria-hidden="true" />
             </Button>
             <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={regenerating || loading}>
-              <RefreshCw className={`h-4 w-4 mr-1.5 ${regenerating ? "animate-spin" : ""}`} />
+              <RefreshCw className={`mr-1.5 h-4 w-4 ${regenerating ? "animate-spin" : ""}`} aria-hidden="true" />
               {regenerating ? "Generating…" : "Regenerate"}
             </Button>
           </div>
-        </div>
+        </header>
 
         {/* Error */}
         {error && (
-          <div className="mb-4 bg-card border border-destructive/30 rounded-xl p-4 flex items-center gap-3 text-sm text-destructive">
-            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <div
+            role="alert"
+            className="mb-6 flex items-center gap-3 rounded-xl border border-destructive/35 bg-destructive/[0.08] p-4 text-sm text-destructive"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
             {error}
           </div>
         )}
@@ -712,15 +740,15 @@ export default function TodayPage() {
 
         {/* Notification permission banner */}
         {notifPermission !== "granted" && notifPermission !== "unsupported" && !notifBannerDismissed && (
-          <div className="mb-4 surface-raised border-l-4 border-l-blue-500 px-4 py-3 flex items-center gap-3">
-            <Bell className="h-4 w-4 text-blue-400 flex-shrink-0" />
-            <span className="text-xs text-muted-foreground flex-1">
-              Enable notifications for reminders about classes, assignments, and study blocks.
+          <div className="surface-raised mb-6 flex items-center gap-3 border-l-2 border-l-cat-study px-4 py-3">
+            <Bell className="h-4 w-4 shrink-0 text-cat-study" aria-hidden="true" />
+            <span className="flex-1 text-sm text-ink-2">
+              Get reminded before classes, assignments and study blocks.
             </span>
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs px-2.5 flex-shrink-0"
+              className="shrink-0"
               onClick={async () => {
                 const result = await requestPermission();
                 setNotifPermission(result);
@@ -735,28 +763,31 @@ export default function TodayPage() {
                 setNotifBannerDismissed(true);
                 localStorage.setItem("notif-banner-dismissed", "1");
               }}
-              className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-foreground rounded flex-shrink-0"
+              aria-label="Dismiss notification prompt"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-4 transition-colors hover:bg-surface-3 hover:text-ink-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </div>
         )}
 
         {/* Empty state */}
         {empty && !loading && (
-          <div className="surface-raised p-10 text-center max-w-md mx-auto">
-            <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
-              <Brain className="h-7 w-7 text-primary" />
-            </div>
-            <h2 className="font-display text-xl font-bold mb-2">No schedule yet</h2>
-            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-              Add your classes and assignments first — the AI will build your personalized daily plan automatically.
+          <div className="mx-auto max-w-lg py-16">
+            <span className="accent-bar mb-6" />
+            <h2 className="text-balance font-display text-display-3 text-ink-1">
+              Nothing to plan yet.
+            </h2>
+            <p className="mt-3 max-w-measure text-pretty leading-relaxed text-ink-3">
+              Add your classes and what's due, and this page fills itself in —
+              study blocks sized to the work, breaks included, conflicts flagged.
             </p>
-            <div className="space-y-2">
-              <Button className="w-full" onClick={() => navigate("/dashboard")}>
-                Go to Schedule
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Button onClick={() => navigate("/dashboard")}>
+                <Brain className="mr-2 h-4 w-4" aria-hidden="true" />
+                Add your schedule
               </Button>
-              <Button variant="ghost" className="w-full text-muted-foreground text-xs" onClick={handleRegenerate} disabled={regenerating}>
+              <Button variant="ghost" onClick={handleRegenerate} disabled={regenerating}>
                 {regenerating ? "Generating…" : "Try generating anyway"}
               </Button>
             </div>
@@ -771,15 +802,15 @@ export default function TodayPage() {
 
               {/* Warnings (compact) */}
               {!loading && plan && plan.warnings.length > 0 && (
-                <div className="bg-card border border-border border-l-4 border-l-amber-500 rounded-xl px-4 py-3">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div className="space-y-1">
+                <div className="rounded-xl border border-cat-warn/30 border-l-2 border-l-cat-warn bg-cat-warn/[0.06] px-4 py-3.5">
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-cat-warn" aria-hidden="true" />
+                    <div className="space-y-1.5">
                       {plan.warnings.slice(0, 3).map((w, i) => (
-                        <p key={i} className="text-xs text-muted-foreground leading-relaxed">{w}</p>
+                        <p key={i} className="text-sm leading-relaxed text-ink-2">{w}</p>
                       ))}
                       {plan.warnings.length > 3 && (
-                        <p className="text-xs text-muted-foreground/60">and {plan.warnings.length - 3} more…</p>
+                        <p className="text-micro text-ink-4">and {plan.warnings.length - 3} more…</p>
                       )}
                     </div>
                   </div>
@@ -802,22 +833,25 @@ export default function TodayPage() {
                       );
                       const urgent = daysUntil <= 2;
                       const warn = daysUntil <= 7;
+                      /* Was five raw hex literals with 8-digit alpha suffixes
+                         (#ef444444, #eab3080a …). Same three states, on tokens. */
+                      const tone = urgent
+                        ? "border-cat-due/35 bg-cat-due/[0.07]"
+                        : warn
+                        ? "border-cat-warn/35 bg-cat-warn/[0.07]"
+                        : "border-border bg-surface-2";
+                      const label = urgent ? "text-cat-due" : warn ? "text-cat-warn" : "text-ink-3";
                       return (
                         <div
                           key={exam.id}
-                          className="flex-shrink-0 bg-card px-3.5 py-2.5 rounded-xl border flex flex-col gap-0.5 min-w-[110px] max-w-[160px]"
-                          style={{
-                            borderColor: urgent ? "#ef444444" : warn ? "#eab30844" : undefined,
-                            backgroundColor: urgent ? "#ef44440a" : warn ? "#eab3080a" : undefined,
-                          }}
+                          className={`flex min-w-[130px] max-w-[180px] shrink-0 flex-col gap-1 rounded-xl border px-3.5 py-2.5 ${tone}`}
                         >
-                          <span
-                            className="text-[10px] font-bold uppercase tracking-wider"
-                            style={{ color: urgent ? "#f87171" : warn ? "#facc15" : "#94a3b8" }}
-                          >
-                            ⏰ {daysUntil === 0 ? "Today!" : daysUntil === 1 ? "Tomorrow" : `${daysUntil}d`}
+                          <span className={`text-kicker uppercase ${label}`}>
+                            {daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : `${daysUntil} days`}
                           </span>
-                          <span className="text-xs font-medium leading-snug line-clamp-2">{exam.title}</span>
+                          <span className="line-clamp-2 text-sm font-medium leading-snug text-ink-2">
+                            {exam.title}
+                          </span>
                         </div>
                       );
                     })}
@@ -827,10 +861,14 @@ export default function TodayPage() {
 
               {/* AI summary */}
               {!loading && plan && (
-                <div className="py-1">
-                  <p className="text-sm text-muted-foreground leading-snug">{plan.summary}</p>
+                /* The day's summary is the first prose on the page — it was
+                   set at 14px in the same grey as every label around it. */
+                <div className="border-l-2 border-primary/40 py-1 pl-4">
+                  <p className="max-w-measure text-pretty text-base leading-relaxed text-ink-2">
+                    {plan.summary}
+                  </p>
                   {plan.motivational && (
-                    <p className="text-xs text-muted-foreground/50 italic mt-0.5 leading-relaxed">
+                    <p className="mt-1.5 max-w-measure text-pretty text-sm italic leading-relaxed text-ink-4">
                       {plan.motivational.replace(/[\u{1F300}-\u{1FAFF}]/gu, "").trim()}
                     </p>
                   )}
@@ -858,13 +896,10 @@ export default function TodayPage() {
                     return (
                       <div key={section}>
                         {/* Section separator */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <Icon className="h-3.5 w-3.5 text-muted-foreground/50" />
-                          <span className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-widest">
-                            {label}
-                          </span>
-                          <div className="flex-1 h-px bg-border/40" />
-                        </div>
+                        <h2 className="kicker-rule mb-3.5">
+                          <Icon className="h-3.5 w-3.5 shrink-0 text-ink-4" aria-hidden="true" />
+                          <span className="shrink-0">{label}</span>
+                        </h2>
 
                         {/* Blocks */}
                         <div className="space-y-2">
@@ -882,7 +917,7 @@ export default function TodayPage() {
                                 {canFocus && (
                                   <button
                                     onClick={() => startTimer({ blockId: block.id, courseName: block.title, blockTitle: block.title })}
-                                    className="absolute bottom-2 right-2 opacity-0 group-hover/focus:opacity-100 transition-opacity h-6 px-2 rounded-lg text-[10px] font-semibold flex items-center gap-1 border"
+                                    className="absolute bottom-2 right-2 opacity-0 group-hover/focus:opacity-100 transition-opacity h-6 px-2 rounded-lg text-micro font-semibold flex items-center gap-1 border"
                                     style={{
                                       backgroundColor: `${block.color}18`,
                                       borderColor: `${block.color}44`,
@@ -932,31 +967,10 @@ export default function TodayPage() {
         onSaved={() => { setPrefsOpen(false); handleRegenerate(); }}
       />
 
-      {/* Mobile bottom nav */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-background/90 backdrop-blur-lg">
-        <div className="flex items-center justify-around h-14 max-w-md mx-auto px-4">
-          {[
-            { icon: CalendarRange, label: "Today", path: "/today" },
-            { icon: Calendar,      label: "Schedule", path: "/dashboard" },
-          ].map(({ icon: Icon, label, path }) => {
-            const active = path === "/today";
-            return (
-              <button
-                key={path}
-                onClick={() => navigate(path)}
-                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors ${
-                  active ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="text-[10px] font-medium">{label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-      {/* Bottom padding for mobile nav */}
-      <div className="lg:hidden h-14" />
+      {/* The mobile bar itself now lives in AppNav — this page's old copy
+          listed only Today and Schedule, so Grades was unreachable from here
+          on a phone. */}
+      <MobileNavSpacer />
 
     </div>
   );

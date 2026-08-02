@@ -58,7 +58,7 @@ export default function MusicPlayer({ onClose }: Props) {
               <button
                 key={p.id}
                 onClick={() => setCurrent(i)}
-                className={`text-[10px] font-medium px-2 py-1 rounded-md whitespace-nowrap transition-colors ${
+                className={`text-micro font-medium px-2 py-1 rounded-md whitespace-nowrap transition-colors ${
                   current === i
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted/50 text-muted-foreground hover:text-foreground"

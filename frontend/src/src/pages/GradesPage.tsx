@@ -1,11 +1,10 @@
 import { useId, useState, useEffect, useCallback, useRef } from "react";
 import {
-  CalendarRange, LogOut, Award,
-  AlertTriangle, Plus, X, Target, BookOpen, RefreshCw,
+  AlertTriangle, Plus, X, Target, RefreshCw,
   ChevronDown, ChevronUp, CheckCircle2,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import AppNav, { APP_CONTAINER, MobileNavSpacer } from "@/components/AppNav";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
@@ -16,22 +15,30 @@ import {
 
 // ── Helpers ──────────────────────────────────────────────────
 
+/* One ramp, A→F, expressed in the shared categorical tokens rather than five
+   stock Tailwind hues. The old pair of functions used `-400` weights here and
+   raw hex (#4ade80, #60a5fa, #fb923c, #f87171) in GPARing and TrendChart, so
+   the same "this is an A" green had three different values on one screen. */
+const GRADE_BANDS = [
+  { min: 89.5, text: "text-cat-free",  bar: "bg-cat-free",  hex: "hsl(150 60% 55%)" },
+  { min: 79.5, text: "text-cat-study", bar: "bg-cat-study", hex: "hsl(205 90% 65%)" },
+  { min: 69.5, text: "text-cat-warn",  bar: "bg-cat-warn",  hex: "hsl(40 95% 60%)" },
+  { min: 59.5, text: "text-cat-class", bar: "bg-cat-class", hex: "hsl(25 95% 60%)" },
+  { min: -Infinity, text: "text-cat-due", bar: "bg-cat-due", hex: "hsl(348 85% 66%)" },
+] as const;
+
+function gradeBand(avg: number) {
+  return GRADE_BANDS.find((b) => avg >= b.min)!;
+}
+
 function gradeColor(avg: number | null): string {
-  if (avg === null) return "text-muted-foreground";
-  if (avg >= 89.5) return "text-green-400";
-  if (avg >= 79.5) return "text-blue-400";
-  if (avg >= 69.5) return "text-yellow-400";
-  if (avg >= 59.5) return "text-orange-400";
-  return "text-red-400";
+  if (avg === null) return "text-ink-3";
+  return gradeBand(avg).text;
 }
 
 function gradeBarColor(avg: number | null): string {
   if (avg === null) return "bg-muted";
-  if (avg >= 89.5) return "bg-green-400";
-  if (avg >= 79.5) return "bg-blue-400";
-  if (avg >= 69.5) return "bg-yellow-400";
-  if (avg >= 59.5) return "bg-orange-400";
-  return "bg-red-400";
+  return gradeBand(avg).bar;
 }
 
 function displayCat(cat: string | null): string {
@@ -121,17 +128,28 @@ const CIRC = 2 * Math.PI * RING_R;
 function GPARing({ gpa }: { gpa: number }) {
   const pct = Math.min(gpa / 5.0, 1);
   const filled = pct * CIRC;
-  const color = gpa >= 3.5 ? "#4ade80" : gpa >= 3.0 ? "#60a5fa" : gpa >= 2.5 ? "#fb923c" : "#f87171";
+  const color =
+    gpa >= 3.5 ? "hsl(150 60% 55%)"
+    : gpa >= 3.0 ? "hsl(205 90% 65%)"
+    : gpa >= 2.5 ? "hsl(25 95% 60%)"
+    : "hsl(348 85% 66%)";
   return (
-    <svg width="148" height="148" viewBox="0 0 148 148">
-      <circle cx="74" cy="74" r={RING_R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="12" />
+    <svg width="148" height="148" viewBox="0 0 148 148" role="img" aria-label={`Weighted GPA ${gpa.toFixed(2)} out of 5`}>
+      <circle cx="74" cy="74" r={RING_R} fill="none" stroke="hsl(var(--muted))" strokeWidth="12" />
       <circle cx="74" cy="74" r={RING_R} fill="none" stroke={color} strokeWidth="12" strokeLinecap="round"
         strokeDasharray={`${filled} ${CIRC}`} transform="rotate(-90 74 74)"
-        style={{ transition: "stroke-dasharray 0.6s ease" }} />
-      <text x="74" y="68" textAnchor="middle" fill="#f1f5f9" fontSize="28" fontWeight="800" fontFamily="sans-serif">
+        style={{ transition: "stroke-dasharray 0.6s cubic-bezier(0,0,0.2,1)" }} />
+      {/* Was fontFamily="sans-serif" — the browser default, so the one number
+          this whole page exists to show was the only text on it not set in
+          the product's typeface. */}
+      <text x="74" y="70" textAnchor="middle" fill="hsl(var(--ink-1))" fontSize="30" fontWeight="800"
+        fontFamily="'Bricolage Grotesque', system-ui, sans-serif" letterSpacing="-1">
         {gpa.toFixed(2)}
       </text>
-      <text x="74" y="88" textAnchor="middle" fill="#94a3b8" fontSize="12" fontFamily="sans-serif">WGPA</text>
+      <text x="74" y="90" textAnchor="middle" fill="hsl(var(--ink-3))" fontSize="10" fontWeight="600"
+        fontFamily="'Bricolage Grotesque', system-ui, sans-serif" letterSpacing="1.6">
+        WGPA
+      </text>
     </svg>
   );
 }
@@ -139,6 +157,18 @@ function GPARing({ gpa }: { gpa: number }) {
 // ── Grade Trend Chart ─────────────────────────────────────────
 
 function TrendChart({ grades }: { grades: Grade[] }) {
+  /* The gradient id was built from the colour literal
+     (`tg-${lineColor.replace("#","")}`), which had two problems: the band
+     colour is now an `hsl(150 60% 55%)` string, so it would splice spaces,
+     `%` and parentheses into an element id and a url() reference; and any two
+     courses in the same grade band produced the *same* id, so with several
+     charts on the page every one of them resolved url(#…) to the first
+     chart's gradient. useId is unique per component instance. */
+  // Colons stripped: useId yields ":r1:", and a bare colon in a url(#…)
+  // fragment is legal in markup but trips up anything that later treats the
+  // reference as a CSS selector.
+  const gradientId = `trend-${useId().replace(/:/g, "")}`;
+
   // Build data points: sort by graded_at, compute running avg after each item
   const scored = grades
     .filter((g) => g.graded_at && g.score !== null && g.max_score && parseFloat(String(g.max_score)) > 0)
@@ -172,22 +202,23 @@ function TrendChart({ grades }: { grades: Grade[] }) {
   const lastAvg = points[points.length - 1].avg;
   const firstAvg = points[0].avg;
   const trend = lastAvg - firstAvg;
-  const lineColor = lastAvg >= 90 ? "#4ade80" : lastAvg >= 80 ? "#60a5fa" : lastAvg >= 70 ? "#facc15" : "#fb923c";
+  const lineColor = gradeBand(lastAvg).hex;
 
   // Y-axis gridlines at round numbers
   const gridYs = Array.from({ length: 5 }, (_, i) => Math.round(minY + (rangeY / 4) * i));
 
   return (
     <div className="px-5 py-3 border-b border-border/50">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Grade Trend</span>
-        <span className={`text-[11px] font-semibold ${trend >= 0 ? "text-green-400" : "text-red-400"}`}>
+      <div className="mb-2.5 flex items-center justify-between gap-3">
+        <span className="kicker">Grade trend</span>
+        <span className={`text-micro font-semibold ${trend >= 0 ? "text-cat-free" : "text-cat-due"}`}>
           {trend >= 0 ? "▲" : "▼"} {Math.abs(trend).toFixed(1)}% over {points.length} grades
         </span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 80 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 80 }} role="img"
+        aria-label={`Running average ${lastAvg.toFixed(1)} percent, ${trend >= 0 ? "up" : "down"} ${Math.abs(trend).toFixed(1)} points across ${points.length} grades`}>
         <defs>
-          <linearGradient id={`tg-${lineColor.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={lineColor} stopOpacity="0.25" />
             <stop offset="100%" stopColor={lineColor} stopOpacity="0.02" />
           </linearGradient>
@@ -198,15 +229,15 @@ function TrendChart({ grades }: { grades: Grade[] }) {
             <line
               x1={PAD.l} y1={toY(v).toFixed(1)}
               x2={W - PAD.r} y2={toY(v).toFixed(1)}
-              stroke="rgba(255,255,255,0.06)" strokeWidth="1"
+              stroke="hsl(var(--rule))" strokeWidth="1"
             />
-            <text x={PAD.l - 4} y={toY(v) + 3} textAnchor="end" fill="#64748b" fontSize="8">
+            <text x={PAD.l - 4} y={toY(v) + 3} textAnchor="end" fill="hsl(var(--ink-4))" fontSize="8">
               {v.toFixed(0)}
             </text>
           </g>
         ))}
         {/* Area fill */}
-        <path d={areaPath} fill={`url(#tg-${lineColor.replace("#","")})`} />
+        <path d={areaPath} fill={`url(#${gradientId})`} />
         {/* Line */}
         <path d={linePath} fill="none" stroke={lineColor} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
         {/* Dots */}
@@ -219,10 +250,10 @@ function TrendChart({ grades }: { grades: Grade[] }) {
           />
         ))}
         {/* Date labels: first and last */}
-        <text x={PAD.l} y={H} textAnchor="start" fill="#64748b" fontSize="8">
+        <text x={PAD.l} y={H} textAnchor="start" fill="hsl(var(--ink-4))" fontSize="8">
           {points[0].date.slice(5)}
         </text>
-        <text x={W - PAD.r} y={H} textAnchor="end" fill="#64748b" fontSize="8">
+        <text x={W - PAD.r} y={H} textAnchor="end" fill="hsl(var(--ink-4))" fontSize="8">
           {points[points.length - 1].date.slice(5)}
         </text>
       </svg>
@@ -319,7 +350,7 @@ function CategoryBar({ label, avg, pts, maxPts, weight }: CategoryStat) {
           style={{ width: `${Math.max(pct, 2)}%` }}
         >
           {pct > 15 && (
-            <span className="text-[10px] font-semibold text-white/90">{pct.toFixed(1)}%</span>
+            <span className="text-micro font-semibold text-white/90">{pct.toFixed(1)}%</span>
           )}
         </div>
       </div>
@@ -481,7 +512,7 @@ function CourseCard({
           <div className="min-w-0">
             <h3 className="font-display font-bold text-sm leading-snug truncate">{course.name}</h3>
             {course.fullName && (
-              <p className="text-[11px] text-muted-foreground truncate mt-0.5">{course.fullName}</p>
+              <p className="text-micro text-muted-foreground truncate mt-0.5">{course.fullName}</p>
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -516,10 +547,10 @@ function CourseCard({
         )}
 
         {/* Footer row */}
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="flex items-center justify-between text-micro text-muted-foreground">
           <span>{grades.length} grade{grades.length !== 1 ? "s" : ""} · {course.creditHours} cr</span>
           {course.targetGrade && course.average !== null && (
-            <span className={`flex items-center gap-1 font-medium ${course.onTrack ? "text-green-400" : "text-orange-400"}`}>
+            <span className={`flex items-center gap-1 font-medium ${course.onTrack ? "text-cat-free" : "text-cat-class"}`}>
               {course.onTrack
                 ? <CheckCircle2 className="h-3 w-3" />
                 : <AlertTriangle className="h-3 w-3" />}
@@ -553,7 +584,7 @@ function CourseCard({
                       style={{ width: `${Math.min(course.average, 100)}%` }}
                     >
                       {course.average > 15 && (
-                        <span className="text-[10px] font-semibold text-white/90">
+                        <span className="text-micro font-semibold text-white/90">
                           {course.average.toFixed(1)}%
                         </span>
                       )}
@@ -575,11 +606,11 @@ function CourseCard({
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border bg-muted/10">
-                    <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground uppercase tracking-wide text-[10px]">Assignment</th>
-                    <th className="px-4 py-2.5 text-center font-semibold text-muted-foreground uppercase tracking-wide text-[10px]">Score</th>
-                    <th className="px-4 py-2.5 text-center font-semibold text-muted-foreground uppercase tracking-wide text-[10px]">%</th>
-                    <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground uppercase tracking-wide text-[10px]">Category</th>
-                    <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground uppercase tracking-wide text-[10px]">Date</th>
+                    <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground uppercase tracking-wide text-micro">Assignment</th>
+                    <th className="px-4 py-2.5 text-center font-semibold text-muted-foreground uppercase tracking-wide text-micro">Score</th>
+                    <th className="px-4 py-2.5 text-center font-semibold text-muted-foreground uppercase tracking-wide text-micro">%</th>
+                    <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground uppercase tracking-wide text-micro">Category</th>
+                    <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground uppercase tracking-wide text-micro">Date</th>
                     <th className="px-4 py-2.5 w-6" />
                   </tr>
                 </thead>
@@ -704,8 +735,7 @@ function GpaCalcModal({
 // ── Main Page ─────────────────────────────────────────────────
 
 export default function GradesPage() {
-  const { user, token, logout } = useAuth();
-  const navigate = useNavigate();
+  const { token } = useAuth();
 
   const [summary, setSummary] = useState<GradeSummary | null>(null);
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -737,11 +767,9 @@ export default function GradesPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const handleLogout = async () => {
-    if (token) await api.logout(token).catch(() => {});
-    logout();
-    navigate("/");
-  };
+  /* Logging out is AppNav's job now. The handler that lived here also called
+     api.logout(token) directly — but AuthContext.logout already does that, so
+     signing out from this page fired the revocation request twice. */
 
   const handleSyncGrades = async () => {
     if (!token) return;
@@ -774,48 +802,17 @@ export default function GradesPage() {
     ...scheduleItems.filter((i) => i.category === "class").map((i) => i.title),
   ])].sort();
 
-  const initials = (user?.email?.[0] ?? "U").toUpperCase();
-
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
 
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <CalendarRange className="h-4 w-4 text-primary" />
-            </div>
-            <span className="font-display font-bold text-base hidden sm:block">AutoPlanner</span>
-          </Link>
-          <div className="flex items-center gap-1">
-            <Link to="/today">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground text-xs">Today's Plan</Button>
-            </Link>
-            <Link to="/dashboard">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground text-xs">Schedule</Button>
-            </Link>
-            <Button variant="ghost" size="sm" className="text-foreground text-xs bg-muted/40">
-              <Award className="h-3.5 w-3.5 mr-1.5" />Grades
-            </Button>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-full bg-muted border border-border flex items-center justify-center text-xs font-bold text-foreground">
-            {initials}
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground">
-            <LogOut className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </nav>
+      <AppNav />
 
-      <main className="max-w-6xl mx-auto px-4 md:px-8 py-8 pb-24">
+      <main className={`${APP_CONTAINER} py-8`}>
         {/* Header + toolbar */}
-        <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
+        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-display text-2xl md:text-3xl font-extrabold">Grades</h1>
-            <p className="text-sm text-muted-foreground mt-1">FCPS weighted GPA · AP +1.0 · Honors +0.5</p>
+            <p className="kicker mb-2.5">FCPS weighted · AP +1.0 · Honors +0.5</p>
+            <h1 className="font-display text-display-3 text-ink-1">Grades</h1>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={() => setGpaOpen(true)} className="text-xs">
@@ -826,19 +823,28 @@ export default function GradesPage() {
               {syncing ? "Syncing…" : "Sync StudentVUE"}
             </Button>
             <Button onClick={() => openAddGrade()} size="sm">
-              <Plus className="h-4 w-4 mr-1.5" />Add Grade
+              <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />Add Grade
             </Button>
           </div>
-        </div>
+        </header>
 
         {/* Sync status */}
         {syncMsg && (
-          <div className={`mb-5 bg-card border border-border rounded-xl px-4 py-3 flex items-start gap-2 text-xs ${
-            syncMsg.startsWith("✓") ? "border-green-500/30 bg-green-500/[0.05]" : "border-orange-500/30 bg-orange-500/[0.05]"
-          }`}>
-            <span className={syncMsg.startsWith("✓") ? "text-green-400" : "text-orange-400"}>{syncMsg}</span>
-            <button onClick={() => setSyncMsg(null)} className="ml-auto text-muted-foreground hover:text-foreground">
-              <X className="h-3 w-3" />
+          <div
+            role="status"
+            className={`mb-6 flex items-start gap-2 rounded-xl border px-4 py-3 text-sm ${
+              syncMsg.startsWith("✓")
+                ? "border-cat-free/30 bg-cat-free/[0.06] text-cat-free"
+                : "border-cat-warn/30 bg-cat-warn/[0.06] text-cat-warn"
+            }`}
+          >
+            <span>{syncMsg}</span>
+            <button
+              onClick={() => setSyncMsg(null)}
+              aria-label="Dismiss"
+              className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-ink-4 transition-colors hover:bg-surface-3 hover:text-ink-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </div>
         )}
@@ -886,7 +892,7 @@ export default function GradesPage() {
             {/* Courses needing attention */}
             {(summary?.courses ?? []).filter((c) => !c.onTrack && c.average !== null).length > 0 && (
               <div className="bg-card border border-border border-l-4 border-l-orange-500 rounded-xl p-3 mb-5 space-y-1">
-                <p className="text-xs font-semibold text-orange-400 flex items-center gap-1.5">
+                <p className="text-xs font-semibold text-cat-class flex items-center gap-1.5">
                   <AlertTriangle className="h-3.5 w-3.5" />Needs attention
                 </p>
                 {(summary?.courses ?? []).filter((c) => !c.onTrack && c.average !== null).map((c) => (
@@ -899,11 +905,14 @@ export default function GradesPage() {
 
             {/* Course cards */}
             {(summary?.courses ?? []).length === 0 ? (
-              <div className="bg-card border border-border rounded-xl p-12 text-center">
-                <BookOpen className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
-                <h3 className="font-display font-bold text-lg mb-2">No grades yet</h3>
-                <p className="text-sm text-muted-foreground mb-6">
-                  Add your first grade or sync from StudentVUE.
+              <div className="max-w-lg py-12">
+                <span className="accent-bar mb-6" />
+                <h3 className="text-balance font-display text-display-3 text-ink-1">
+                  No grades in yet.
+                </h3>
+                <p className="mt-3 max-w-measure text-pretty leading-relaxed text-ink-3">
+                  Sync from StudentVUE and your marks come across with their
+                  categories and weights. Or add one by hand to start.
                 </p>
                 <div className="flex items-center justify-center gap-3">
                   <Button variant="outline" onClick={handleSyncGrades} disabled={syncing}>
@@ -944,19 +953,7 @@ export default function GradesPage() {
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-20 lg:hidden border-t border-border bg-background/80 backdrop-blur-xl flex">
-        {[
-          { to: "/today", icon: CalendarRange, label: "Today" },
-          { to: "/dashboard", icon: BookOpen, label: "Schedule" },
-          { to: "/grades", icon: Award, label: "Grades" },
-        ].map(({ to, icon: Icon, label }) => (
-          <Link key={to} to={to} className={`flex-1 flex flex-col items-center py-3 gap-0.5 text-[10px] transition-colors ${
-            to === "/grades" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-          }`}>
-            <Icon className="h-5 w-5" />{label}
-          </Link>
-        ))}
-      </nav>
+      <MobileNavSpacer />
 
       <AddGradeModal
         isOpen={addOpen}

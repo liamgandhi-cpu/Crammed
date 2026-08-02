@@ -196,10 +196,10 @@ export default function PomodoroTimer({ blockId, courseName, blockTitle, onClose
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
           <div className="h-5 w-5 rounded-md flex items-center justify-center" style={{ backgroundColor: color + "22" }}>
-            <span className="text-[10px]">🍅</span>
+            <span className="text-micro">🍅</span>
           </div>
           <span className="text-xs font-semibold">{PHASE_LABEL[phase]}</span>
-          <span className="text-[10px] text-muted-foreground">{Math.floor(pomodoroCount / 4) + 1}.{(pomodoroCount % 4) + 1}</span>
+          <span className="text-micro text-muted-foreground">{Math.floor(pomodoroCount / 4) + 1}.{(pomodoroCount % 4) + 1}</span>
         </div>
         <div className="flex items-center gap-1">
           {/* Music toggle */}
@@ -239,7 +239,7 @@ export default function PomodoroTimer({ blockId, courseName, blockTitle, onClose
           ))}
         </div>
         {(blockTitle ?? courseName) && (
-          <p className="text-[11px] text-muted-foreground mt-1 max-w-[200px] truncate text-center">
+          <p className="text-micro text-muted-foreground mt-1 max-w-[200px] truncate text-center">
             {phase === "focus" ? "Studying: " : "Break from: "}
             <span className="text-foreground">{blockTitle ?? courseName}</span>
           </p>
@@ -270,7 +270,7 @@ export default function PomodoroTimer({ blockId, courseName, blockTitle, onClose
           <div className="flex gap-1 px-3 py-2 overflow-x-auto">
             {PLAYLISTS.map((p, i) => (
               <button key={p.id} onClick={() => setCurrentPlaylist(i)}
-                className={`text-[10px] font-medium px-2 py-1 rounded-md whitespace-nowrap transition-colors ${
+                className={`text-micro font-medium px-2 py-1 rounded-md whitespace-nowrap transition-colors ${
                   currentPlaylist === i ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:text-foreground"
                 }`}>
                 {p.label}

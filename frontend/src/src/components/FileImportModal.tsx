@@ -49,13 +49,13 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 const CATEGORY_COLOR: Record<string, string> = {
-  class: "bg-orange-500/15 text-orange-400 border-orange-500/25",
-  assignment: "bg-rose-500/15 text-rose-400 border-rose-500/25",
-  exam: "bg-red-500/15 text-red-400 border-red-500/25",
-  project: "bg-purple-500/15 text-purple-400 border-purple-500/25",
-  activity: "bg-sky-500/15 text-sky-400 border-sky-500/25",
+  class: "bg-cat-class/15 text-cat-class border-cat-class/25",
+  assignment: "bg-cat-due/15 text-cat-due border-cat-due/25",
+  exam: "bg-cat-due/15 text-cat-due border-cat-due/25",
+  project: "bg-cat-week/15 text-cat-week border-cat-week/25",
+  activity: "bg-cat-study/15 text-cat-study border-cat-study/25",
   study: "bg-teal-500/15 text-teal-400 border-teal-500/25",
-  other: "bg-green-500/15 text-green-400 border-green-500/25",
+  other: "bg-cat-free/15 text-cat-free border-cat-free/25",
 };
 
 function formatSize(bytes: number): string {
@@ -66,9 +66,9 @@ function formatSize(bytes: number): string {
 
 function fileIcon(file: File) {
   const ext = file.name.split(".").pop()?.toLowerCase();
-  if (file.type.startsWith("image/")) return <Image className="h-4 w-4 text-blue-400" />;
-  if (ext === "pdf") return <FileText className="h-4 w-4 text-red-400" />;
-  if (ext === "ics") return <Calendar className="h-4 w-4 text-green-400" />;
+  if (file.type.startsWith("image/")) return <Image className="h-4 w-4 text-cat-study" />;
+  if (ext === "pdf") return <FileText className="h-4 w-4 text-cat-due" />;
+  if (ext === "ics") return <Calendar className="h-4 w-4 text-cat-free" />;
   if (ext === "csv") return <FileSpreadsheet className="h-4 w-4 text-teal-400" />;
   return <FileText className="h-4 w-4 text-muted-foreground" />;
 }
@@ -158,13 +158,13 @@ function PreviewItemCard({
           <p className="text-sm font-medium leading-tight truncate">{item.title}</p>
         )}
         {dateLabel && (
-          <p className="text-[11px] text-muted-foreground mt-0.5">{dateLabel}</p>
+          <p className="text-micro text-muted-foreground mt-0.5">{dateLabel}</p>
         )}
       </div>
 
       {/* Category badge */}
       <span
-        className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border flex-shrink-0 hidden sm:block ${catStyle}`}
+        className={`text-micro font-semibold px-1.5 py-0.5 rounded-md border flex-shrink-0 hidden sm:block ${catStyle}`}
       >
         {CATEGORY_LABEL[item.category] ?? item.category}
       </span>
@@ -365,25 +365,20 @@ export default function FileImportModal({ isOpen, onClose, onImported }: Props) 
           >
 
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <FileUp className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <Dialog.Title className="font-display text-base font-bold">Import Files</Dialog.Title>
-                  <Dialog.Description className="text-xs text-muted-foreground">
-                    {state === "upload" && "Upload syllabi, calendars, or assignment sheets"}
-                    {state === "processing" && "Processing your files…"}
-                    {state === "preview" && `Found ${preview.length} items — review before importing`}
-                    {state === "success" && `Successfully imported ${importedCount} items`}
-                  </Dialog.Description>
-                </div>
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-6 py-5">
+              <div>
+                <Dialog.Title className="font-display text-display-4 text-ink-1">Import files</Dialog.Title>
+                <Dialog.Description className="mt-1 text-sm text-ink-3">
+                  {state === "upload" && "Syllabi, calendars, or assignment sheets."}
+                  {state === "processing" && "Reading your files…"}
+                  {state === "preview" && `Found ${preview.length} items — review before importing.`}
+                  {state === "success" && `Imported ${importedCount} items.`}
+                </Dialog.Description>
               </div>
               {state !== "processing" && (
                 <Dialog.Close
                   aria-label="Close"
-                  className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-ink-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="h-4 w-4" />
                 </Dialog.Close>
@@ -510,12 +505,12 @@ export default function FileImportModal({ isOpen, onClose, onImported }: Props) 
                   {/* Summary pills */}
                   <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
                     {classItems.length > 0 && (
-                      <span className="bg-orange-500/10 border border-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full font-medium">
+                      <span className="bg-cat-class/10 border border-cat-class/20 text-cat-class px-2 py-0.5 rounded-full font-medium">
                         {classItems.length} recurring classes
                       </span>
                     )}
                     {eventItems.length > 0 && (
-                      <span className="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-2 py-0.5 rounded-full font-medium">
+                      <span className="bg-cat-due/10 border border-cat-due/20 text-cat-due px-2 py-0.5 rounded-full font-medium">
                         {eventItems.length} assignments / exams
                       </span>
                     )}
@@ -528,7 +523,7 @@ export default function FileImportModal({ isOpen, onClose, onImported }: Props) 
 
                   {/* Warning from partial failures */}
                   {error && (
-                    <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-4 py-3 text-xs text-yellow-400">
+                    <div className="rounded-xl bg-cat-warn/10 border border-cat-warn/20 px-4 py-3 text-xs text-cat-warn">
                       ⚠ {error}
                     </div>
                   )}
@@ -592,8 +587,8 @@ export default function FileImportModal({ isOpen, onClose, onImported }: Props) 
               {/* ── State: SUCCESS ── */}
               {state === "success" && (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
-                  <div className="h-16 w-16 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center">
-                    <CheckCircle2 className="h-9 w-9 text-green-400" />
+                  <div className="h-16 w-16 rounded-full bg-cat-free/10 border border-cat-free/30 flex items-center justify-center">
+                    <CheckCircle2 className="h-9 w-9 text-cat-free" />
                   </div>
                   <div className="text-center">
                     <p className="font-display font-bold text-lg">

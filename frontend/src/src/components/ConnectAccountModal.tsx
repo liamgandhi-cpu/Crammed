@@ -277,8 +277,8 @@ function IonTab({ onImported }: { onImported: () => void }) {
   if (connected) {
     return (
       <div className="flex flex-col items-center gap-4 py-8 text-center animate-fade-slide-up">
-        <div className="h-16 w-16 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-          <CheckCircle2 className="h-8 w-8 text-green-500" />
+        <div className="h-16 w-16 rounded-2xl bg-cat-free/10 border border-cat-free/20 flex items-center justify-center">
+          <CheckCircle2 className="h-8 w-8 text-cat-free" />
         </div>
         <div>
           <h3 className="font-display text-lg font-bold">Ion Connected!</h3>
@@ -354,7 +354,7 @@ export default function ConnectAccountModal({ isOpen, onClose, onImported }: Pro
               </div>
               <Dialog.Close
                 aria-label="Close"
-                className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-ink-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <X className="h-4 w-4" />
               </Dialog.Close>

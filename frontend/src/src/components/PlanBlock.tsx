@@ -1,4 +1,8 @@
-import { CheckCircle2, Circle, Music } from "lucide-react";
+import {
+  CheckCircle2, Circle, Music,
+  BookOpen, Brain, PencilLine, Coffee, ClipboardList, FileText, Target, UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
 import type { PlanBlock as PlanBlockType } from "@/lib/api";
 
 function formatTime(t: string): string {
@@ -14,15 +18,31 @@ function durationMins(start: string, end: string): number {
   return (eh * 60 + em) - (sh * 60 + sm);
 }
 
-const TYPE_ICON: Record<string, string> = {
-  class: "📚",
-  study: "🧠",
-  assignment: "✏️",
-  break: "☕",
-  prep: "📋",
-  exam: "📝",
-  free: "🎯",
-  meal: "🍽️",
+/**
+ * Line icons, not emoji.
+ *
+ * These were 📚 🧠 ✏️ ☕ 📋 📝 🎯 🍽️ rendered at `text-base`. Emoji are the
+ * loudest, most saturated thing that can appear in a dark editorial UI —
+ * each one arrives with its own palette, none of which is this product's —
+ * and they render differently on every platform, so the block's right edge
+ * was a different size and colour on Windows, macOS and Android. Lucide
+ * strokes inherit `currentColor`, so they take the block's own category tint.
+ */
+const TYPE_ICON: Record<string, LucideIcon> = {
+  class: BookOpen,
+  study: Brain,
+  assignment: PencilLine,
+  break: Coffee,
+  prep: ClipboardList,
+  exam: FileText,
+  free: Target,
+  meal: UtensilsCrossed,
+};
+
+const PRIORITY: Record<string, { tone: string; label: string }> = {
+  high:   { tone: "bg-cat-due",  label: "High priority" },
+  medium: { tone: "bg-cat-warn", label: "Medium priority" },
+  low:    { tone: "bg-cat-free", label: "Low priority" },
 };
 
 const FOCUS_TYPES = new Set(["study", "assignment", "prep", "exam"]);
@@ -38,45 +58,52 @@ interface Props {
 export default function PlanBlock({ block, onToggle, isPast, isCurrent, onPlayMusic }: Props) {
   const dim = block.completed || isPast;
   const mins = durationMins(block.startTime, block.endTime);
+  const Icon = TYPE_ICON[block.type] ?? Target;
+  const priority = PRIORITY[block.priority] ?? PRIORITY.low;
+
+  const duration = mins >= 60
+    ? `${Math.floor(mins / 60)}h${mins % 60 > 0 ? ` ${mins % 60}m` : ""}`
+    : `${mins}m`;
 
   return (
     <div
-      className={`relative rounded-2xl border overflow-hidden transition-all duration-300 group ${
-        isCurrent ? "shadow-lg ring-1" : "hover:shadow-md"
-      } ${dim ? "opacity-50" : ""}`}
+      className={`group relative overflow-hidden rounded-xl border transition-all duration-300 ${
+        isCurrent ? "shadow-elev-2" : "hover:shadow-elev-1"
+      } ${dim ? "opacity-55" : ""}`}
       style={{
-        backgroundColor: `${block.color}10`,
-        borderColor: isCurrent ? `${block.color}60` : `${block.color}25`,
-        boxShadow: isCurrent ? `0 0 0 1px ${block.color}40, 0 8px 24px ${block.color}15` : undefined,
+        backgroundColor: `${block.color}0f`,
+        borderColor: isCurrent ? `${block.color}66` : `${block.color}26`,
       }}
     >
-      {/* 4px left accent border */}
-      <div
-        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl"
+      {/* Category accent. 3px, flush — the old one was a 4px bar with
+          `rounded-l-2xl` on a `rounded-2xl` parent that already clipped it,
+          so the radius did nothing but soften the join. */}
+      <span
+        className="absolute inset-y-0 left-0 w-[3px]"
         style={{ backgroundColor: block.color }}
+        aria-hidden="true"
       />
 
-      <div className="pl-4 pr-3 py-3 flex gap-3 items-start">
-        {/* Checkbox */}
+      <div className="flex items-start gap-3 py-3 pl-4 pr-3">
         <button
           onClick={() => onToggle(block.id, !block.completed)}
-          className="flex-shrink-0 mt-0.5 transition-transform active:scale-90"
+          aria-pressed={block.completed}
+          aria-label={`Mark "${block.title}" ${block.completed ? "not done" : "done"}`}
+          className="mt-0.5 shrink-0 rounded-full transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           style={{ color: block.completed ? block.color : undefined }}
         >
           {block.completed ? (
-            <CheckCircle2 className="h-5 w-5" />
+            <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
           ) : (
-            <Circle className="h-5 w-5 text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors" />
+            <Circle className="h-5 w-5 text-ink-4 transition-colors group-hover:text-ink-3" aria-hidden="true" />
           )}
         </button>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* Title row */}
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span
-              className={`text-sm font-semibold leading-snug transition-all ${
-                block.completed ? "line-through text-muted-foreground" : ""
+              className={`text-[0.9375rem] font-semibold leading-snug ${
+                block.completed ? "text-ink-4 line-through" : ""
               }`}
               style={{ color: block.completed ? undefined : block.color }}
             >
@@ -84,51 +111,55 @@ export default function PlanBlock({ block, onToggle, isPast, isCurrent, onPlayMu
             </span>
             {isCurrent && (
               <span
-                className="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full border animate-pulse"
+                className="rounded-full border px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-[0.14em]"
                 style={{
                   color: block.color,
-                  borderColor: `${block.color}60`,
-                  backgroundColor: `${block.color}15`,
+                  borderColor: `${block.color}66`,
+                  backgroundColor: `${block.color}1a`,
                 }}
               >
-                NOW
+                Now
               </span>
             )}
           </div>
 
-          {/* Time + duration */}
-          <p className="text-[11px] text-muted-foreground/70 mt-0.5 font-mono">
-            {formatTime(block.startTime)} – {formatTime(block.endTime)}
-            <span className="ml-2 font-sans not-italic text-muted-foreground/50">
-              {mins >= 60
-                ? `${Math.floor(mins / 60)}h${mins % 60 > 0 ? ` ${mins % 60}m` : ""}`
-                : `${mins}m`}
-            </span>
+          <p className="mt-1 flex items-center gap-2 text-micro text-ink-3">
+            <time className="font-mono">
+              {formatTime(block.startTime)} – {formatTime(block.endTime)}
+            </time>
+            <span aria-hidden="true" className="text-ink-4">·</span>
+            <span className="text-ink-4">{duration}</span>
           </p>
 
-          {/* Description */}
           {block.description && (
-            <p className="text-xs text-muted-foreground/60 mt-1 leading-relaxed line-clamp-2">
+            <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-ink-3">
               {block.description}
             </p>
           )}
         </div>
 
-        {/* Right: type emoji + priority + music */}
-        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-          <span className="text-base leading-none">{TYPE_ICON[block.type] ?? "📌"}</span>
-          <span className={`h-1.5 w-1.5 rounded-full ${
-            block.priority === "high" ? "bg-red-500" :
-            block.priority === "medium" ? "bg-yellow-400" : "bg-green-500"
-          }`} />
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <Icon
+            className="h-4 w-4"
+            style={{ color: block.color, opacity: 0.75 }}
+            aria-hidden="true"
+          />
+          {/* Priority was a bare coloured dot — information carried by hue
+              alone, which is unreadable both to a screen reader and to anyone
+              who can't separate the red from the green. The dot stays as the
+              quick visual cue; the name goes with it. */}
+          <span className="flex items-center" title={priority.label}>
+            <span className={`h-1.5 w-1.5 rounded-full ${priority.tone}`} aria-hidden="true" />
+            <span className="sr-only">{priority.label}</span>
+          </span>
           {onPlayMusic && FOCUS_TYPES.has(block.type) && !block.completed && (
             <button
               onClick={(e) => { e.stopPropagation(); onPlayMusic(); }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 flex items-center justify-center rounded-md hover:bg-white/10"
-              title="Play study music"
+              className="flex h-6 w-6 items-center justify-center rounded-md opacity-0 transition-opacity hover:bg-white/10 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
+              aria-label={`Play study music for ${block.title}`}
               style={{ color: block.color }}
             >
-              <Music className="h-3 w-3" />
+              <Music className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           )}
         </div>
