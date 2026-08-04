@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import AppNav, { APP_CONTAINER, MobileNavSpacer } from "@/components/AppNav";
+import ClaudePromptCard, { EC_PLAN_PROMPT } from "@/components/ClaudePromptCard";
 import { useAuth } from "@/context/AuthContext";
 import {
   api,
@@ -255,18 +256,24 @@ function AddActivityForm({
     year: number;
     category: EcCategory;
     hours_per_week: number;
+    why: string | null;
+    first_step: string | null;
   }) => Promise<void>;
 }) {
   const titleId = useId();
   const yearId = useId();
   const catId = useId();
   const hoursId = useId();
+  const whyId = useId();
+  const stepId = useId();
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [year, setYear] = useState(9);
   const [category, setCategory] = useState<EcCategory>("leadership");
   const [hours, setHours] = useState(2);
+  const [why, setWhy] = useState("");
+  const [firstStep, setFirstStep] = useState("");
   const [saving, setSaving] = useState(false);
 
   if (!open) {
@@ -288,8 +295,17 @@ function AddActivityForm({
         if (!title.trim() || saving) return;
         setSaving(true);
         try {
-          await onAdd({ title: title.trim(), year, category, hours_per_week: hours });
+          await onAdd({
+            title: title.trim(),
+            year,
+            category,
+            hours_per_week: hours,
+            why: why.trim() || null,
+            first_step: firstStep.trim() || null,
+          });
           setTitle("");
+          setWhy("");
+          setFirstStep("");
           setOpen(false);
         } finally {
           setSaving(false);
@@ -356,6 +372,34 @@ function AddActivityForm({
             value={hours}
             onChange={(e) => setHours(clampedNumber(e.target.value, 0, 40, 0))}
             className="mt-1.5"
+          />
+        </div>
+
+        {/* Optional, but they are the two fields that make a plan item worth
+            keeping — and the two Claude fills in when you run the prompt. */}
+        <div className="sm:col-span-2">
+          <Label htmlFor={whyId}>Why (optional)</Label>
+          <textarea
+            id={whyId}
+            value={why}
+            onChange={(e) => setWhy(e.target.value)}
+            rows={2}
+            maxLength={2000}
+            placeholder="What this builds toward for you."
+            className="mt-1.5 w-full rounded-lg border border-border bg-surface-3 px-3 py-2.5 text-sm leading-relaxed text-ink-1 placeholder:text-ink-4 focus-visible:outline-none focus-visible:[outline:2px_solid_hsl(var(--primary))] focus-visible:[outline-offset:2px]"
+          />
+        </div>
+
+        <div className="sm:col-span-2">
+          <Label htmlFor={stepId}>First step (optional)</Label>
+          <textarea
+            id={stepId}
+            value={firstStep}
+            onChange={(e) => setFirstStep(e.target.value)}
+            rows={2}
+            maxLength={2000}
+            placeholder="One concrete thing to do in the next two weeks."
+            className="mt-1.5 w-full rounded-lg border border-border bg-surface-3 px-3 py-2.5 text-sm leading-relaxed text-ink-1 placeholder:text-ink-4 focus-visible:outline-none focus-visible:[outline:2px_solid_hsl(var(--primary))] focus-visible:[outline-offset:2px]"
           />
         </div>
       </div>
@@ -444,15 +488,13 @@ export default function ECPlanPage() {
       year: number;
       category: EcCategory;
       hours_per_week: number;
+      why: string | null;
+      first_step: string | null;
     }) => {
       if (!token) return;
       setError(null);
       try {
-        const res = await api.addEcPlanItem(token, {
-          ...item,
-          why: null,
-          first_step: null,
-        });
+        const res = await api.addEcPlanItem(token, item);
         setItems((cur) => [...cur, res.item]);
       } catch (err) {
         // Show what the server actually said. Replacing it with generic copy
@@ -526,6 +568,15 @@ export default function ECPlanPage() {
           hasPlan={items.length > 0}
           onGenerate={handleGenerate}
         />
+
+        <div className="mt-4">
+          <ClaudePromptCard
+            title="Rather work it out in Claude?"
+            description="Copy this into Claude to think it through in conversation — no daily limit, and you can push back on what it suggests. It answers in the same six fields this page uses."
+            prompt={EC_PLAN_PROMPT}
+            returnHint="the form below, one activity at a time"
+          />
+        </div>
 
         <AddActivityForm onAdd={handleAdd} />
 

@@ -114,6 +114,42 @@ export default function ClaudePromptCard({
   );
 }
 
+/**
+ * The extracurricular plan, run in Claude instead of in the app.
+ *
+ * Field names and the category list match the add form exactly, so the answer
+ * transcribes straight across without the student having to interpret
+ * anything. The rules are deliberately the same ones the in-app generator uses
+ * — a plan built this way should not read differently from a generated one.
+ */
+export const EC_PLAN_PROMPT = `Help me plan my extracurriculars for high school. I want a realistic four-year plan, not a wish list.
+
+About me:
+- Grade I'm going into: [9, 10, 11, or 12]
+- Hours a week I can actually give to activities, total: [e.g. 8]
+- Classes I'm taking or plan to take: [list them]
+- What I'm into: [subjects, hobbies, anything I already do outside class]
+- What I'd rather avoid: [optional]
+
+Build the plan grade by grade, from my current grade through 12th, with 2 to 4 activities per grade.
+
+Rules:
+- Total hours per week within any single grade must not exceed my number above.
+- Build depth, not a list. Something I start early should come back later with more responsibility rather than being replaced by something new.
+- Ground it in what I actually study and do. Don't invent achievements or assume resources I haven't mentioned.
+- Don't promise admissions outcomes. This is a plan for how to spend my time.
+
+Group the activities under a heading for each grade. For each activity, give exactly these six fields, one per line, in this order:
+
+Title: a specific name, like "Tutor algebra at the public library" rather than "Volunteering"
+Grade: 9, 10, 11, or 12
+Category: exactly one of leadership, service, research, arts, athletics, work, competition, project
+Hours per week: a number
+Why: one sentence on what this builds toward for me specifically
+First step: one concrete thing I could do in the next two weeks — a person to email, a meeting to show up to, something to make. Not "research options" or "consider joining"
+
+Put a blank line between activities. No preamble and no closing summary.`;
+
 /** Produces the plain line format `parseSchedule` on the backend expects. */
 export const SCHEDULE_PROMPT = `Convert my class schedule into a plain list I can paste into my planner.
 
