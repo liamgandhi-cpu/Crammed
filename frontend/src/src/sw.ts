@@ -47,7 +47,7 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: "AutoPlanner", body: event.data.text() };
+    payload = { title: "Crammed", body: event.data.text() };
   }
 
   event.waitUntil(

@@ -56,7 +56,7 @@ export default function ScrapeJobBanner() {
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
           )}
           {status === "done" && (
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <CheckCircle2 className="h-4 w-4 text-cat-free" />
           )}
           {status === "failed" && (
             <XCircle className="h-4 w-4 text-destructive" />
@@ -75,7 +75,7 @@ export default function ScrapeJobBanner() {
           )}
           {status === "done" && (
             <>
-              <p className="text-sm font-semibold text-green-500">Sync complete!</p>
+              <p className="text-sm font-semibold text-cat-free">Sync complete!</p>
               {resultLine && (
                 <p className="mt-0.5 text-xs text-muted-foreground">{resultLine}</p>
               )}

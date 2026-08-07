@@ -13,8 +13,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png"],
       manifest: {
-        name: "AutoPlanner",
-        short_name: "AutoPlanner",
+        name: "Crammed",
+        short_name: "Crammed",
         description: "Paste in your classes and assignments. Get a real schedule in seconds.",
         theme_color: "#0f0f1a",
         background_color: "#0f0f1a",

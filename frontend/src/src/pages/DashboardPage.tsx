@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
-  CalendarRange, LogOut, Plus, Clock, BookOpen, Sparkles,
+  CalendarRange, Plus, Clock, BookOpen,
   Trash2, X, MapPin, StickyNote, RefreshCw, GraduationCap,
   Pencil, CheckSquare, Square, ListTodo, FileUp, Link2,
   ChevronDown, AlertTriangle, Download,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import AppNav, { APP_CONTAINER, MobileNavSpacer } from "@/components/AppNav";
 import { useAuth } from "@/context/AuthContext";
 import {
   api, type ScheduleItem, type NewScheduleItem,
@@ -107,14 +107,18 @@ function BlockPopover({ item, pos, onClose, onDelete, onEdit }: BlockPopoverProp
       onClick={(e) => e.stopPropagation()}
     >
       <div className="h-1" style={{ background: `linear-gradient(90deg, ${item.color}, ${item.color}80)` }} />
-      <div className="p-4 space-y-3">
+      <div className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-2">
-          <span className="font-semibold text-sm leading-tight">{item.title}</span>
-          <button onClick={onClose} className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
-            <X className="h-3.5 w-3.5" />
+          <span className="font-display text-base font-bold leading-tight text-ink-1">{item.title}</span>
+          <button
+            onClick={onClose}
+            aria-label="Close details"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-4 transition-colors hover:bg-surface-3 hover:text-ink-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </div>
-        <div className="space-y-1.5 text-xs text-muted-foreground">
+        <div className="space-y-2 text-sm text-ink-3">
           {item.day_of_week != null && item.start_time && item.end_time && (
             <div className="flex items-center gap-2">
               <Clock className="h-3.5 w-3.5 flex-shrink-0" />
@@ -184,16 +188,18 @@ function ScheduleBlock({ item, index, onSelect }: {
       }}
       onClick={(e) => onSelect(item, e.currentTarget)}
     >
-      <p className="text-[10px] font-bold leading-tight truncate" style={{ color: item.color }}>
+      {/* Was 10px title over 9px metadata. A grid cell is tight, but 9px is
+          below the point where the text is doing any work at all. */}
+      <p className="truncate text-[0.6875rem] font-bold leading-tight" style={{ color: item.color }}>
         {item.title}
       </p>
       {height > 30 && (
-        <p className="text-[9px] text-muted-foreground leading-tight truncate mt-0.5">
+        <p className="mt-0.5 truncate font-mono text-[0.625rem] leading-tight text-ink-3">
           {formatTime(item.start_time)}
         </p>
       )}
       {height > 52 && item.location && (
-        <p className="text-[9px] text-muted-foreground leading-tight truncate">
+        <p className="truncate text-[0.625rem] leading-tight text-ink-4">
           {item.location}
         </p>
       )}
@@ -246,8 +252,7 @@ function MoreMenu({ onClear, onConnect }: { onClear: () => void; onConnect: () =
 // ── Dashboard ──────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { user, token, logout } = useAuth();
-  const navigate = useNavigate();
+  const { token } = useAuth();
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -428,12 +433,103 @@ export default function DashboardPage() {
     );
   }, [items, weekDates]);
 
-  const initials = (user?.email?.[0] ?? "U").toUpperCase();
+  /**
+   * One row for both the exam list and the assignment list.
+   *
+   * These were two ~40-line blocks that had been copied and then drifted:
+   * "due soon" meant ≤3 days in one and ≤2 in the other, the estimate chip was
+   * purple in one and blue in the other, and the urgent badge was `bg-cat-due`
+   * in one and `bg-cat-warn` in the other — differences nobody chose. The
+   * thresholds are now explicit props and the colours come from tokens.
+   */
+  function AssignmentRow({
+    item, dueSoonDays, estPrefix, estSuffix, estTone,
+  }: {
+    item: ScheduleItem;
+    dueSoonDays: number;
+    estPrefix: string;
+    estSuffix: string;
+    estTone: string;
+  }) {
+    const due = new Date(item.due_date!.split("T")[0] + "T00:00:00");
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((due.getTime() - today.getTime()) / 86400000);
+    const overdue = diffDays < 0;
+    const dueSoon = diffDays <= dueSoonDays && !overdue;
+    const est = item.estimated_minutes;
+    const estLabel = est
+      ? est >= 60
+        ? `${estPrefix}${Math.floor(est / 60)}h${est % 60 ? `${est % 60}m` : ""}${estSuffix}`
+        : `${estPrefix}${est}m${estSuffix}`
+      : null;
+
+    return (
+      <div
+        draggable
+        onDragStart={(e) => e.dataTransfer.setData("text/plain", item.title)}
+        className={`group flex cursor-grab items-center gap-3 rounded-xl border border-border bg-surface-2 px-4 py-3 transition-all hover:border-ink-4/40 hover:shadow-elev-1 active:cursor-grabbing ${
+          item.completed ? "opacity-55" : ""
+        }`}
+        onClick={(e) => handleSelectBlock(item, e.currentTarget)}
+      >
+        <button
+          onClick={(e) => { e.stopPropagation(); handleToggleAssignment(item.id, !item.completed); }}
+          aria-pressed={item.completed}
+          aria-label={`Mark "${item.title}" ${item.completed ? "not done" : "done"}`}
+          className="shrink-0 rounded-sm text-ink-4 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {item.completed
+            ? <CheckSquare className="h-4 w-4 text-primary" aria-hidden="true" />
+            : <Square className="h-4 w-4" aria-hidden="true" />}
+        </button>
+
+        <span
+          className="h-9 w-1 shrink-0 rounded-full"
+          style={{ backgroundColor: item.color }}
+          aria-hidden="true"
+        />
+
+        <div className="min-w-0 flex-1">
+          <p className={`truncate text-sm font-medium ${item.completed ? "text-ink-4 line-through" : "text-ink-1"}`}>
+            {item.title}
+          </p>
+          {item.notes && <p className="mt-0.5 truncate text-micro text-ink-3">{item.notes}</p>}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1.5">
+          {estLabel && (
+            <span className={`rounded-full px-2 py-0.5 text-micro font-medium ${estTone}`}>
+              {estLabel}
+            </span>
+          )}
+          <span
+            className={`rounded-full px-2 py-0.5 text-micro font-semibold ${
+              overdue ? "bg-destructive/15 text-destructive"
+              : dueSoon ? "bg-cat-due/15 text-cat-due"
+              : "bg-muted text-ink-3"
+            }`}
+          >
+            {overdue ? `${Math.abs(diffDays)}d late`
+              : diffDays === 0 ? "Today"
+              : diffDays === 1 ? "Tomorrow"
+              : due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }}
+            aria-label={`Delete "${item.title}"`}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-ink-4 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
+          >
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ── TodoList component (shared) ─────────────────────────
   function TodoList() {
     return (
-      <div className="bg-card border border-border rounded-xl p-4">
+      <div className="rounded-xl border border-border bg-surface-2 p-4">
         <form
           onSubmit={(e) => { e.preventDefault(); handleAddTodo(); }}
           onDragOver={(e) => { e.preventDefault(); setTodoDragOver(true); }}
@@ -444,31 +540,48 @@ export default function DashboardPage() {
             const text = e.dataTransfer.getData("text/plain");
             if (text) handleAddTodoFromText(text);
           }}
-          className={`flex gap-2 mb-3 rounded-xl p-1 transition-all ${todoDragOver ? "ring-2 ring-primary/60 bg-primary/[0.07]" : ""}`}
+          className={`mb-3 flex gap-2 rounded-lg transition-colors ${
+            todoDragOver ? "bg-primary/[0.07] outline outline-2 outline-primary/60" : ""
+          }`}
         >
-          <Input value={todoInput} onChange={(e) => setTodoInput(e.target.value)}
-            placeholder={todoDragOver ? "Drop to add task…" : "Add a task…"} className="flex-1 h-9 text-sm" />
-          <Button type="submit" size="sm" className="h-9 px-3" disabled={!todoInput.trim()}>
-            <Plus className="h-4 w-4" />
+          <label htmlFor="dashboard-todo-input" className="sr-only">Add a task</label>
+          <Input
+            id="dashboard-todo-input"
+            value={todoInput}
+            onChange={(e) => setTodoInput(e.target.value)}
+            placeholder={todoDragOver ? "Drop to add task…" : "Add a task…"}
+            className="h-9 flex-1"
+          />
+          <Button type="submit" size="sm" className="h-9 w-9 shrink-0 px-0" disabled={!todoInput.trim()} aria-label="Add task">
+            <Plus className="h-4 w-4" aria-hidden="true" />
           </Button>
         </form>
         {todos.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">No tasks yet. Add one above.</p>
+          <p className="py-3 text-sm leading-relaxed text-ink-3">
+            Nothing on the list. Drag an assignment in, or type one above.
+          </p>
         ) : (
-          <ul className="space-y-0.5">
+          <ul className="ruled">
             {todos.map((todo) => (
-              <li key={todo.id} className="flex items-center gap-2.5 group rounded-lg px-2 py-2 hover:bg-muted/40 transition-colors">
-                <button onClick={() => handleToggleTodo(todo.id, !todo.completed)} className="flex-shrink-0">
+              <li key={todo.id} className="group flex items-center gap-1">
+                <button
+                  onClick={() => handleToggleTodo(todo.id, !todo.completed)}
+                  aria-pressed={todo.completed}
+                  className="flex flex-1 items-center gap-2.5 rounded-md px-1 py-2.5 text-left transition-colors hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
                   {todo.completed
-                    ? <CheckSquare className="h-4 w-4 text-primary" />
-                    : <Square className="h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground" />}
+                    ? <CheckSquare className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    : <Square className="h-4 w-4 shrink-0 text-ink-4" aria-hidden="true" />}
+                  <span className={`flex-1 text-sm leading-snug ${todo.completed ? "text-ink-4 line-through" : "text-ink-2"}`}>
+                    {todo.text}
+                  </span>
                 </button>
-                <span className={`flex-1 text-sm leading-snug ${todo.completed ? "line-through text-muted-foreground/50" : ""}`}>
-                  {todo.text}
-                </span>
-                <button onClick={() => handleDeleteTodo(todo.id)}
-                  className="opacity-0 group-hover:opacity-100 h-6 w-6 flex items-center justify-center text-muted-foreground hover:text-destructive transition-all rounded-md hover:bg-destructive/10">
-                  <X className="h-3.5 w-3.5" />
+                <button
+                  onClick={() => handleDeleteTodo(todo.id)}
+                  aria-label={`Delete task: ${todo.text}`}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-4 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </li>
             ))}
@@ -478,19 +591,18 @@ export default function DashboardPage() {
     );
   }
 
+  /* Kicker over a rule. The icon chip is gone: it was a 24px tinted square
+     repeated at the head of every section, carrying no information the title
+     didn't already carry, and it capped these headings at 14px so no section
+     on the page could out-rank another. */
   function SectionHeader({ icon: Icon, title, count }: { icon: React.ElementType; title: string; count?: string | number }) {
     return (
-      <div className="flex items-center gap-2.5 mb-3">
-        <div className="h-6 w-6 rounded-md bg-muted border border-border flex items-center justify-center">
-          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-        </div>
-        <h2 className="font-display text-sm font-semibold">{title}</h2>
+      <div className="kicker-rule mb-3.5">
+        <Icon className="h-3.5 w-3.5 shrink-0 text-ink-4" aria-hidden="true" />
+        <h2 className="shrink-0">{title}</h2>
         {count !== undefined && (
-          <span className="text-[11px] text-muted-foreground bg-muted border border-border px-1.5 py-0.5 rounded-full leading-none">
-            {count}
-          </span>
+          <span className="shrink-0 text-ink-4" data-numeric>{count}</span>
         )}
-        <div className="flex-1 h-px bg-border/60" />
       </div>
     );
   }
@@ -498,55 +610,17 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
 
-      {/* Nav */}
-      <nav className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-              <CalendarRange className="h-4 w-4 text-primary" />
-            </div>
-            <span className="font-display text-lg font-bold tracking-tight hidden sm:block">AutoPlanner</span>
-          </Link>
+      <AppNav />
 
-          <div className="flex items-center gap-1 bg-muted/40 rounded-xl p-1 border border-border/50">
-            <button onClick={() => navigate("/today")}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-muted-foreground hover:text-foreground">
-              Today's Plan
-            </button>
-            <button onClick={() => navigate("/dashboard")}
-              aria-current="page"
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-card border border-border/60 text-foreground shadow-sm">
-              Schedule
-            </button>
-            <button
-              onClick={() => navigate("/grades")}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-muted-foreground hover:text-foreground"
-            >
-              Grades
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center">
-              <span className="text-xs font-bold text-foreground">{initials}</span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={logout} className="gap-1.5">
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Log out</span>
-            </Button>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className={`${APP_CONTAINER} py-8`}>
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+        <header className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <h1 className="font-display text-2xl font-bold">Your Schedule</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
+            <p className="kicker mb-2.5">
               {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </p>
+            <h1 className="font-display text-display-3 text-ink-1">Your schedule</h1>
           </div>
 
           <div className="flex items-center gap-2">
@@ -573,23 +647,28 @@ export default function DashboardPage() {
               </Button>
             )}
           </div>
-        </div>
+        </header>
 
         {/* Stats pills */}
         {hasItems && (
-          <div className="flex items-center gap-2 flex-wrap mb-5">
+          /* Figures on rules, not pills. Four bordered capsules in a row is the
+             same "everything is a chip" flattening the sidebar had — and the
+             numbers, which are the point, were set at 12px inside them. */
+          <div className="mb-8 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-[hsl(var(--rule))] py-5 sm:flex sm:gap-10">
             {[
-              { icon: BookOpen, label: "classes", value: uniqueClasses, color: "text-primary", bg: "bg-primary/10 border-primary/20" },
-              { icon: Clock, label: "hrs / week", value: hoursScheduled, color: "text-muted-foreground", bg: "bg-muted border-border" },
-              { icon: CalendarRange, label: "assignments", value: assignments.length, color: "text-primary", bg: "bg-primary/10 border-primary/20" },
-              todos.length > 0 ? { icon: ListTodo, label: "tasks done", value: `${completedTodos}/${todos.length}`, color: "text-green-400", bg: "bg-green-500/10 border-green-500/20" } : null,
+              { icon: BookOpen, label: "classes", value: uniqueClasses, tone: "text-cat-class" },
+              { icon: Clock, label: "hrs / week", value: hoursScheduled, tone: "text-ink-2" },
+              { icon: CalendarRange, label: "assignments", value: assignments.length, tone: "text-cat-study" },
+              todos.length > 0 ? { icon: ListTodo, label: "tasks done", value: `${completedTodos}/${todos.length}`, tone: "text-cat-free" } : null,
             ].filter(Boolean).map((s) => {
               const Icon = s!.icon;
               return (
-                <div key={s!.label} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium ${s!.bg}`}>
-                  <Icon className={`h-3.5 w-3.5 ${s!.color}`} />
-                  <span className={`font-bold ${s!.color}`}>{s!.value}</span>
-                  <span className="text-muted-foreground">{s!.label}</span>
+                <div key={s!.label}>
+                  <p className={`figure text-2xl ${s!.tone}`}>{s!.value}</p>
+                  <p className="mt-1.5 flex items-center gap-1.5 text-micro text-ink-3">
+                    <Icon className="h-3.5 w-3.5 text-ink-4" aria-hidden="true" />
+                    {s!.label}
+                  </p>
                 </div>
               );
             })}
@@ -605,25 +684,25 @@ export default function DashboardPage() {
             .slice(0, 4);
           if (exams.length === 0) return null;
           return (
-            <div className="flex items-center gap-3 overflow-x-auto pb-1 mb-5 -mx-1 px-1 scrollbar-hide">
-              <span className="text-[11px] text-muted-foreground font-semibold flex-shrink-0">⏰ Exams:</span>
+            <div className="-mx-1 mb-6 flex items-center gap-2.5 overflow-x-auto px-1 pb-1 scrollbar-hide">
+              <span className="kicker shrink-0">Exams</span>
               {exams.map((exam) => {
                 const daysUntil = Math.ceil(
                   (new Date(exam.due_date!).getTime() - new Date(today).getTime()) / 86_400_000
                 );
                 const urgent = daysUntil <= 2;
                 const warn = daysUntil <= 7;
+                const tone = urgent
+                  ? "border-cat-due/35 bg-cat-due/[0.07] text-cat-due"
+                  : warn
+                  ? "border-cat-warn/35 bg-cat-warn/[0.07] text-cat-warn"
+                  : "border-border text-ink-3";
                 return (
                   <span
                     key={exam.id}
-                    className="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full border"
-                    style={{
-                      color: urgent ? "#f87171" : warn ? "#facc15" : "#94a3b8",
-                      borderColor: urgent ? "#ef444440" : warn ? "#eab30840" : "#94a3b840",
-                      backgroundColor: urgent ? "#ef44440a" : warn ? "#eab3080a" : "transparent",
-                    }}
+                    className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-micro font-semibold ${tone}`}
                   >
-                    {exam.title} · {daysUntil === 0 ? "Today!" : daysUntil === 1 ? "Tomorrow" : `${daysUntil}d`}
+                    {exam.title} · {daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : `${daysUntil}d`}
                   </span>
                 );
               })}
@@ -637,24 +716,30 @@ export default function DashboardPage() {
             {accounts.map((acct) => {
               const providerName = acct.provider === "studentvue" ? "StudentVUE" : acct.provider === "schoology" ? "Schoology" : "Ion (TJHSST)";
               return (
-                <div key={acct.id} className="flex items-center justify-between bg-card border border-border rounded-lg px-3 py-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-                    <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-medium">{providerName}</span>
+                <div key={acct.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-sm">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cat-free" aria-hidden="true" />
+                    <GraduationCap className="h-4 w-4 shrink-0 text-ink-4" aria-hidden="true" />
+                    <span className="font-medium text-ink-1">{providerName}</span>
                     {acct.last_synced_at && (
-                      <span className="text-muted-foreground">
-                        · synced {new Date(acct.last_synced_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      <span className="truncate text-micro text-ink-3">
+                        synced {new Date(acct.last_synced_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => handleSync(acct.provider)} disabled={syncing === acct.provider}
-                      className="text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors" title="Re-sync">
-                      <RefreshCw className={`h-3 w-3 ${syncing === acct.provider ? "animate-spin" : ""}`} />
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      onClick={() => handleSync(acct.provider)}
+                      disabled={syncing === acct.provider}
+                      aria-label={`Re-sync ${providerName}`}
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-ink-1 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${syncing === acct.provider ? "animate-spin" : ""}`} aria-hidden="true" />
                     </button>
-                    <button onClick={() => handleDisconnect(acct.id, providerName)}
-                      className="text-muted-foreground hover:text-destructive transition-colors font-medium" title="Disconnect">
+                    <button
+                      onClick={() => handleDisconnect(acct.id, providerName)}
+                      className="rounded-md px-2 py-1.5 text-micro font-medium text-ink-3 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
                       Disconnect
                     </button>
                   </div>
@@ -666,46 +751,46 @@ export default function DashboardPage() {
 
         {/* Empty state — shown instead of grid */}
         {!loading && !hasItems && (
-          <div className="flex flex-col items-center justify-center py-16 mb-8">
-            <div className="bg-card border border-border rounded-xl p-10 text-center max-w-sm w-full">
-              <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="h-7 w-7 text-primary" />
-              </div>
-              <h2 className="font-display text-xl font-bold mb-2">No classes yet</h2>
-              <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                Paste your schedule, upload a file, or connect your school account to get started.
-              </p>
-              <div className="space-y-2">
-                <Button className="w-full" onClick={() => setModalOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />Add Your Schedule
-                </Button>
-                <Button variant="outline" className="w-full" onClick={() => setImportModalOpen(true)}>
-                  <FileUp className="h-4 w-4 mr-2" />Import a File
-                </Button>
-                <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setConnectModalOpen(true)}>
-                  <Link2 className="h-4 w-4 mr-2" />Connect School Account
-                </Button>
-              </div>
+          <div className="mb-8 max-w-lg py-12">
+            <span className="accent-bar mb-6" />
+            <h2 className="text-balance font-display text-display-3 text-ink-1">
+              Let's get your week in.
+            </h2>
+            <p className="mt-3 max-w-measure text-pretty leading-relaxed text-ink-3">
+              Three ways in, and none of them is typing out a timetable by hand.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button onClick={() => setModalOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" aria-hidden="true" />Paste a schedule
+              </Button>
+              <Button variant="outline" onClick={() => setImportModalOpen(true)}>
+                <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />Import a file
+              </Button>
+              <Button variant="ghost" onClick={() => setConnectModalOpen(true)}>
+                <Link2 className="mr-2 h-4 w-4" aria-hidden="true" />Connect your school
+              </Button>
             </div>
           </div>
         )}
 
         {/* Schedule grid */}
         {(loading || hasItems) && (
-          <div className="bg-card border border-border rounded-xl overflow-hidden mb-6">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-border/60 sm:hidden">
-              <span className="text-[11px] text-muted-foreground">Weekly schedule</span>
-              <span className="text-[11px] text-muted-foreground">← swipe to scroll →</span>
+          <div className="mb-8 overflow-hidden rounded-xl border border-border bg-surface-1">
+            <div className="flex items-center justify-between border-b border-border/60 px-4 py-2 sm:hidden">
+              <span className="kicker">Weekly schedule</span>
+              <span className="text-micro text-ink-4">swipe to scroll</span>
             </div>
-            <div className="grid grid-cols-[52px_repeat(7,1fr)] border-b border-border min-w-[640px]">
+            <div className="grid min-w-[640px] grid-cols-[52px_repeat(7,1fr)] border-b border-border">
               <div className="p-2" />
               {DAYS.map((day, idx) => (
-                <div key={day} className={`p-2.5 text-center border-l border-border ${
-                  idx === todayIdx ? "bg-primary/[0.08] text-primary" : "text-muted-foreground"
+                <div key={day} className={`border-l border-border p-2.5 text-center ${
+                  idx === todayIdx ? "bg-primary/[0.08] text-primary" : "text-ink-3"
                 }`}>
-                  <span className="text-[11px] font-bold uppercase tracking-wider block">{day}</span>
-                  <span className="text-[10px] font-normal block opacity-60">{parseInt(weekDates[idx]?.slice(8) ?? "0", 10)}</span>
-                  {idx === todayIdx && <span className="block h-0.5 w-5 bg-primary mx-auto mt-1 rounded-full" />}
+                  <span className="block text-kicker uppercase">{day}</span>
+                  <span className="mt-1 block text-micro text-ink-4" data-numeric>
+                    {parseInt(weekDates[idx]?.slice(8) ?? "0", 10)}
+                  </span>
+                  {idx === todayIdx && <span className="mx-auto mt-1.5 block h-0.5 w-5 rounded-full bg-primary" />}
                 </div>
               ))}
             </div>
@@ -715,7 +800,7 @@ export default function DashboardPage() {
                   <div className="relative">
                     {HOURS.map((hour, i) => (
                       <div key={hour}
-                        className="absolute right-0 pr-2 text-[10px] font-mono text-muted-foreground/60 border-b border-border/30 flex items-start justify-end pt-1 w-full"
+                        className="absolute right-0 flex w-full items-start justify-end border-b border-border/30 pr-2 pt-1 font-mono text-[0.625rem] text-ink-4"
                         style={{ top: `${i * ROW_HEIGHT}px`, height: `${ROW_HEIGHT}px` }}>
                         {hour % 12 === 0 ? 12 : hour % 12}{hour < 12 ? "a" : "p"}
                       </div>
@@ -755,61 +840,16 @@ export default function DashboardPage() {
             <div>
               <SectionHeader icon={GraduationCap} title="Upcoming Exams" count={upcomingExams.length} />
               <div className="space-y-2">
-                {upcomingExams.map((a) => {
-                  const due = new Date(a.due_date!.split("T")[0] + "T00:00:00");
-                  const today = new Date(); today.setHours(0, 0, 0, 0);
-                  const diffDays = Math.round((due.getTime() - today.getTime()) / 86400000);
-                  const overdue = diffDays < 0;
-                  const dueSoon = diffDays <= 3 && !overdue;
-                  const estMins = a.estimated_minutes;
-                  const estLabel = estMins
-                    ? estMins >= 60
-                      ? `${Math.floor(estMins / 60)}h${estMins % 60 ? `${estMins % 60}m` : ""} prep`
-                      : `${estMins}m prep`
-                    : null;
-                  return (
-                    <div key={a.id}
-                      draggable
-                      onDragStart={(e) => e.dataTransfer.setData("text/plain", a.title)}
-                      className={`bg-card border border-border rounded-xl hover:-translate-y-px transition-transform px-4 py-3 flex items-center gap-3 group cursor-grab active:cursor-grabbing ${a.completed ? "opacity-50" : ""}`}
-                      onClick={(e) => handleSelectBlock(a, e.currentTarget)}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleToggleAssignment(a.id, !a.completed); }}
-                        className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        {a.completed ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}
-                      </button>
-                      <div className="h-8 w-1 rounded-full flex-shrink-0" style={{ backgroundColor: a.color }} />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${a.completed ? "line-through text-muted-foreground" : ""}`}>{a.title}</p>
-                        {a.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{a.notes}</p>}
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {estLabel && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 font-medium">
-                            {estLabel}
-                          </span>
-                        )}
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                          overdue ? "bg-destructive/15 text-destructive" :
-                          dueSoon ? "bg-red-500/15 text-red-400" :
-                          "bg-muted text-muted-foreground"
-                        }`}>
-                          {overdue ? `${Math.abs(diffDays)}d late` :
-                           diffDays === 0 ? "Today" :
-                           diffDays === 1 ? "Tomorrow" :
-                           due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteItem(a.id); }}
-                          className="opacity-0 group-hover:opacity-100 h-6 w-6 flex items-center justify-center text-muted-foreground hover:text-destructive transition-all rounded-md hover:bg-destructive/10"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                {upcomingExams.map((a) => (
+                  <AssignmentRow
+                    key={a.id}
+                    item={a}
+                    dueSoonDays={3}
+                    estPrefix=""
+                    estSuffix=" prep"
+                    estTone="bg-cat-week/15 text-cat-week"
+                  />
+                ))}
               </div>
             </div>
           )}
@@ -823,68 +863,21 @@ export default function DashboardPage() {
                   {[1, 2, 3].map((i) => <div key={i} className="skeleton h-14 rounded-2xl" style={{ animationDelay: `${i * 0.08}s` }} />)}
                 </div>
               ) : upcomingAssignments.length === 0 ? (
-                <div className="bg-card border border-border rounded-xl px-4 py-8 text-center text-sm text-muted-foreground">
-                  No upcoming assignments
-                </div>
+                <p className="rounded-xl border border-dashed border-[hsl(var(--rule))] px-4 py-8 text-center text-sm text-ink-3">
+                  Nothing due. Add assignments and they'll queue up here.
+                </p>
               ) : (
                 <div className="space-y-2">
-                  {upcomingAssignments.map((a) => {
-                    const due = new Date(a.due_date!.split("T")[0] + "T00:00:00");
-                    const today = new Date(); today.setHours(0, 0, 0, 0);
-                    const diffDays = Math.round((due.getTime() - today.getTime()) / 86400000);
-                    const overdue = diffDays < 0;
-                    const dueSoon = diffDays <= 2 && !overdue;
-                    const estMins = a.estimated_minutes;
-                    const estLabel = estMins
-                      ? estMins >= 60
-                        ? `~${Math.floor(estMins / 60)}h${estMins % 60 ? `${estMins % 60}m` : ""}`
-                        : `~${estMins}m`
-                      : null;
-                    return (
-                      <div key={a.id}
-                        draggable
-                        onDragStart={(e) => e.dataTransfer.setData("text/plain", a.title)}
-                        className={`bg-card border border-border rounded-xl hover:-translate-y-px transition-transform px-4 py-3 flex items-center gap-3 group cursor-grab active:cursor-grabbing ${a.completed ? "opacity-50" : ""}`}
-                        onClick={(e) => handleSelectBlock(a, e.currentTarget)}>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleToggleAssignment(a.id, !a.completed); }}
-                          className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
-                        >
-                          {a.completed
-                            ? <CheckSquare className="h-4 w-4 text-primary" />
-                            : <Square className="h-4 w-4" />}
-                        </button>
-                        <div className="h-8 w-1 rounded-full flex-shrink-0" style={{ backgroundColor: a.color }} />
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium truncate ${a.completed ? "line-through text-muted-foreground" : ""}`}>{a.title}</p>
-                          {a.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{a.notes}</p>}
-                        </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {estLabel && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 font-medium">
-                              {estLabel}
-                            </span>
-                          )}
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                            overdue ? "bg-destructive/15 text-destructive" :
-                            dueSoon ? "bg-yellow-500/15 text-yellow-400" :
-                            "bg-muted text-muted-foreground"
-                          }`}>
-                            {overdue ? `${Math.abs(diffDays)}d late` :
-                             diffDays === 0 ? "Today" :
-                             diffDays === 1 ? "Tomorrow" :
-                             due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                          </span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDeleteItem(a.id); }}
-                            className="opacity-0 group-hover:opacity-100 h-6 w-6 flex items-center justify-center text-muted-foreground hover:text-destructive transition-all rounded-md hover:bg-destructive/10"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {upcomingAssignments.map((a) => (
+                    <AssignmentRow
+                      key={a.id}
+                      item={a}
+                      dueSoonDays={2}
+                      estPrefix="~"
+                      estSuffix=""
+                      estTone="bg-cat-study/15 text-cat-study"
+                    />
+                  ))}
                 </div>
               )}
             </div>
@@ -920,20 +913,7 @@ export default function DashboardPage() {
       <FileImportModal isOpen={importModalOpen} onClose={() => setImportModalOpen(false)}
         onImported={() => fetchSchedule()} />
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 lg:hidden border-t border-border bg-background flex">
-        {[
-          { to: "/today",     icon: CalendarRange, label: "Today" },
-          { to: "/dashboard", icon: BookOpen,      label: "Schedule" },
-        ].map(({ to, icon: Icon, label }) => (
-          <Link key={to} to={to} className={`flex-1 flex flex-col items-center py-3 gap-0.5 text-[10px] transition-colors ${
-            to === "/dashboard" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-          }`}>
-            <Icon className="h-5 w-5" />{label}
-          </Link>
-        ))}
-      </nav>
-      <div className="lg:hidden h-14" />
+      <MobileNavSpacer />
 
       {/* Clear confirmation — bottom banner */}
       {clearConfirm && (

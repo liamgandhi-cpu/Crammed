@@ -41,10 +41,10 @@ export function generateICS(items: ScheduleItem[]): string {
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//AutoPlanner//EN",
+    "PRODID:-//Crammed//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:AutoPlanner Schedule",
+    "X-WR-CALNAME:Crammed Schedule",
     "X-WR-TIMEZONE:America/New_York",
   ];
 

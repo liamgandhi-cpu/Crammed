@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { api, type NewScheduleItem, type ScheduleItem, type Category, ApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useFocusRestore } from "@/hooks/useFocusRestore";
+import ClaudePromptCard, { SCHEDULE_PROMPT } from "@/components/ClaudePromptCard";
 
 interface Props {
   isOpen: boolean;
@@ -276,19 +277,16 @@ export default function ScheduleInputModal({ isOpen, onClose, onSaved }: Props) 
             onCloseAutoFocus={handleCloseAutoFocus}
             className="dialog-surface pointer-events-auto bg-card border border-border rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-dialog-in">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-border">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <Dialog.Title className="font-display text-lg font-bold">Add Assignment</Dialog.Title>
-                  <Dialog.Description className="text-xs text-muted-foreground">Quick form or AI text paste</Dialog.Description>
-                </div>
+            <div className="flex items-start justify-between gap-4 border-b border-border p-6">
+              <div>
+                <Dialog.Title className="font-display text-display-4 text-ink-1">Add assignment</Dialog.Title>
+                <Dialog.Description className="mt-1 text-sm text-ink-3">
+                  Fill in the form, or paste the text and let it parse.
+                </Dialog.Description>
               </div>
               <Dialog.Close
                 aria-label="Close"
-                className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-ink-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <X className="h-4 w-4" />
               </Dialog.Close>
@@ -331,6 +329,13 @@ export default function ScheduleInputModal({ isOpen, onClose, onSaved }: Props) 
                 <div className="space-y-5">
                   {!parsedItems && (
                     <>
+                      <ClaudePromptCard
+                        title="Don't have it as text?"
+                        description="Most schedules live in a screenshot or a PDF. Copy this prompt into Claude with whatever you've got, and it'll come back in the format below."
+                        prompt={SCHEDULE_PROMPT}
+                        returnHint="the box below"
+                      />
+
                       <div>
                         <label htmlFor="ai-paste" className="block text-sm font-medium mb-2 text-foreground">
                           Paste your schedule
@@ -384,7 +389,7 @@ export default function ScheduleInputModal({ isOpen, onClose, onSaved }: Props) 
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium text-sm truncate">{item.title}</span>
                                 <span
-                                  className="text-[10px] px-1.5 py-0.5 rounded-md font-medium flex-shrink-0"
+                                  className="text-micro px-1.5 py-0.5 rounded-md font-medium flex-shrink-0"
                                   style={{
                                     backgroundColor: `${item.color}25`,
                                     color: item.color,

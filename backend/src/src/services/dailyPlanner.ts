@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { query } from "../config/db";
 import { randomUUID } from "crypto";
+import { isSummerSession, SUMMER_PLANNING_GUIDANCE, type SummerMode } from "../utils/season";
 
 const anthropic = new Anthropic();
 
@@ -269,11 +270,30 @@ export async function generateDailyPlan(
         return `- ${g.course_name}: ${avg.toFixed(1)}% (${letter})${target ? ` — target ${target}` : ""}${below ? " ⚠️ BELOW TARGET — prioritize this course" : ""}`;
       }).join("\n");
 
+  /**
+   * Tie an assignment back to a course by its title.
+   *
+   * gradeMap is keyed by full course names ("AP Biology"), while titles are
+   * free text ("AP Biology essay", "Bio lab report"). This previously looked up
+   * `title.split(" ")[0]` — the first word — which only matched when a course
+   * was named exactly that single word, so the below-target boost below never
+   * actually fired. Search for a course name anywhere in the title instead,
+   * longest first so "AP Biology" wins over a shorter course whose name is a
+   * substring of it.
+   */
+  const courseNamesByLength = [...gradeMap.keys()].sort((a, b) => b.length - a.length);
+
+  function courseGradeFor(title: string) {
+    const haystack = title.toLowerCase();
+    const hit = courseNamesByLength.find((name) => haystack.includes(name.toLowerCase()));
+    return hit ? gradeMap.get(hit) : undefined;
+  }
+
   // 7b. Pre-compute urgency scores per upcoming item
   function urgencyScore(item: Record<string, unknown>, daysUntil: number): number {
     const urgencyFromDue = 1 / Math.max(daysUntil, 0.5);
     const categoryMultiplier = item.category === "exam" ? 2.0 : item.category === "project" ? 1.4 : 1.0;
-    const courseGrade = gradeMap.get(String(item.title).split(" ")[0]);
+    const courseGrade = courseGradeFor(String(item.title));
     const gradeMultiplier = courseGrade?.below ? 1.5 : 1.0;
     return urgencyFromDue * categoryMultiplier * gradeMultiplier;
   }
@@ -335,6 +355,8 @@ export async function generateDailyPlan(
   }
 
   // 8. Build prompt
+  const summer = isSummerSession(date, (prefs.summer_mode as SummerMode) ?? "auto");
+
   const prompt = `You are an expert academic scheduler. Build a precise, conflict-free daily plan.
 
 TODAY: ${date} (${DAY_NAMES[jsDay]})
@@ -353,6 +375,7 @@ TODAY: ${date} (${DAY_NAMES[jsDay]})
   : prefs.semester_load === "light" ? "light study load; generous free/leisure blocks"
   : "balanced — roughly equal study and downtime"}${prefs.hard_subjects ? `\n- Hard subjects (add 50% extra time for these): ${prefs.hard_subjects}` : ""}${prefs.notes ? `\n- Extra notes: ${prefs.notes}` : ""}
 
+${summer ? `\n${SUMMER_PLANNING_GUIDANCE}\n` : ""}
 ═══ FIXED BLOCKS (do NOT overlap or modify these) ═══
 ${
   allFixedBlocks.length === 0

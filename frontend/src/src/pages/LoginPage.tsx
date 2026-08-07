@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { AuthLayout } from "@/components/AuthLayout";
+import { AuthLayout, AuthDivider, AuthAsideList } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,18 +40,20 @@ export default function LoginPage() {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Log in to your AutoPlanner account"
+      subtitle="Pick up where your week left off."
+      aside={
+        <AuthAsideList
+          items={[
+            "Your plan for today is already built.",
+            "Schoology and Ion stay in sync in the background.",
+            "Focus streaks and weighted GPA, kept up to date.",
+          ]}
+        />
+      }
     >
       <GoogleSignInButton onError={(msg) => setError(msg)} />
 
-      <div className="relative my-4">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">or</span>
-        </div>
-      </div>
+      <AuthDivider />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
@@ -79,7 +81,7 @@ export default function LoginPage() {
             <Label htmlFor="password">Password</Label>
             <button
               type="button"
-              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+              className="rounded-sm text-sm text-ink-3 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               onClick={() =>
                 alert("Password reset will be available in a future release.")
               }
@@ -101,13 +103,15 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-ink-1"
               tabIndex={-1}
             >
               {showPassword ? (
-                <EyeOff className="h-4 w-4" />
+                <EyeOff className="h-4 w-4" aria-hidden="true" />
               ) : (
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -130,11 +134,11 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted-foreground">
+      <p className="mt-8 border-t border-[hsl(var(--rule))] pt-6 text-sm text-ink-3">
         Don&apos;t have an account?{" "}
         <Link
           to="/signup"
-          className="text-primary font-medium hover:underline underline-offset-2"
+          className="rounded-sm font-medium text-primary underline decoration-primary/40 underline-offset-4 transition-colors hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           Sign up free
         </Link>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Settings, GraduationCap, Clock, Brain, MapPin, Bell, Smartphone } from "lucide-react";
+import { X, GraduationCap, Clock, Brain, MapPin, Bell, Smartphone } from "lucide-react";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ const DEFAULTS: UserPreferences = {
   preferred_block_length: 60,
   hard_subjects: null,
   semester_load: "moderate",
+  summer_mode: "auto",
 };
 
 const STUDY_STYLES = [
@@ -34,6 +35,12 @@ const STUDY_STYLES = [
   { value: "early_bird", label: "Early Bird",  desc: "Hard tasks front-loaded before noon" },
   { value: "night_owl",  label: "Night Owl",   desc: "Hard tasks in the afternoon/evening" },
   { value: "pomodoro",   label: "Pomodoro",    desc: "25-min work / 5-min break cycles" },
+] as const;
+
+const SUMMER_MODES = [
+  { value: "auto", label: "Automatic", desc: "Mid-June to late August" },
+  { value: "on",   label: "Always on", desc: "I'm on a break now" },
+  { value: "off",  label: "Never",     desc: "Year-round schedule" },
 ] as const;
 
 const BLOCK_LENGTHS = [25, 30, 45, 60, 90, 120] as const;
@@ -110,14 +117,15 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
             className="dialog-surface pointer-events-auto bg-card border border-border rounded-xl w-full max-w-lg flex flex-col animate-dialog-in"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-border">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Settings className="h-4 w-4 text-primary" />
-                </div>
-                <Dialog.Title className="font-display text-base font-bold">Planner Preferences</Dialog.Title>
-              </div>
-              <Dialog.Close aria-label="Close" className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+            <div className="flex items-start justify-between gap-4 border-b border-border p-5">
+              {/* The 32px tinted icon chip that opened every modal header is
+                  gone. It never identified anything — the title does that —
+                  and it held the title down to 16px, so a dialog's own heading
+                  was smaller than the section headings inside its body. */}
+              <Dialog.Title className="font-display text-display-4 text-ink-1">
+                Planner preferences
+              </Dialog.Title>
+              <Dialog.Close aria-label="Close" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-ink-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <X className="h-4 w-4" />
               </Dialog.Close>
             </div>
@@ -129,7 +137,7 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
               <section className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Daily Schedule</span>
+                  <span className="kicker">Daily Schedule</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -166,7 +174,7 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
               <section className="space-y-4">
                 <div className="flex items-center gap-2">
                   <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Current Semester</span>
+                  <span className="kicker">Current Semester</span>
                 </div>
 
                 <div className="space-y-2">
@@ -184,7 +192,7 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
                         }`}
                       >
                         <div className="font-medium text-sm">{s.label}</div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{s.desc}</div>
+                        <div className="text-micro text-muted-foreground mt-0.5 leading-tight">{s.desc}</div>
                       </button>
                     ))}
                   </div>
@@ -204,11 +212,36 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
                 </div>
               </section>
 
+                              <div className="space-y-2">
+                  <Label id="prefs-summer-label">Summer mode</Label>
+                  <p className="text-micro text-muted-foreground -mt-1">
+                    Plans around projects and self-study instead of a class timetable.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2" role="group" aria-labelledby="prefs-summer-label">
+                    {SUMMER_MODES.map((m) => (
+                      <button
+                        key={m.value}
+                        type="button"
+                        aria-pressed={(prefs.summer_mode ?? "auto") === m.value}
+                        onClick={() => setPrefs((p) => ({ ...p, summer_mode: m.value }))}
+                        className={`text-left p-3 rounded-xl border text-sm transition-all ${
+                          (prefs.summer_mode ?? "auto") === m.value
+                            ? "border-primary/60 bg-primary/10"
+                            : "border-border hover:border-muted-foreground"
+                        }`}
+                      >
+                        <div className="font-medium">{m.label}</div>
+                        <div className="text-micro text-muted-foreground mt-0.5">{m.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
               {/* ── Study style ───────────────────────────────── */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Brain className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Study Style</span>
+                  <span className="kicker">Study Style</span>
                 </div>
 
                 <div className="space-y-2">
@@ -226,7 +259,7 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
                         }`}
                       >
                         <div className="font-medium text-sm">{s.label}</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5">{s.desc}</div>
+                        <div className="text-micro text-muted-foreground mt-0.5">{s.desc}</div>
                       </button>
                     ))}
                   </div>
@@ -282,7 +315,7 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
                     onChange={(e) => setPrefs((p) => ({ ...p, max_study_hours: parseInt(e.target.value) }))}
                     className="w-full accent-primary"
                   />
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <div className="flex justify-between text-micro text-muted-foreground">
                     <span>1h</span><span>6h</span><span>12h</span>
                   </div>
                 </div>
@@ -292,7 +325,7 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
               <section className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Bell className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notifications</span>
+                  <span className="kicker">Notifications</span>
                 </div>
 
                 {/* Push notification toggle */}
@@ -302,7 +335,7 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
                       <Smartphone className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                       <div>
                         <div className="text-sm font-medium">Push notifications</div>
-                        <div className="text-[11px] text-muted-foreground">
+                        <div className="text-micro text-muted-foreground">
                           {pushState === "denied"
                             ? "Blocked — enable in your browser/phone settings"
                             : pushState === "subscribed"
@@ -338,7 +371,7 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
                     <label key={key} className="flex items-start justify-between gap-3 cursor-pointer group">
                       <div>
                         <div className="text-sm font-medium">{label}</div>
-                        <div className="text-[11px] text-muted-foreground">{desc}</div>
+                        <div className="text-micro text-muted-foreground">{desc}</div>
                       </div>
                       <button
                         type="button"
@@ -382,7 +415,7 @@ export default function PreferencesModal({ isOpen, onClose, onSaved }: Props) {
               <section className="space-y-2">
                 <div className="flex items-center gap-2">
                   <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Anything else?</span>
+                  <span className="kicker">Anything else?</span>
                 </div>
                 <textarea
                   value={prefs.notes ?? ""}

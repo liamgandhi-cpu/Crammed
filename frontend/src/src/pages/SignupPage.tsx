@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { AuthLayout } from "@/components/AuthLayout";
+import { AuthLayout, AuthDivider, AuthAsideList } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,18 +53,20 @@ export default function SignupPage() {
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="Start organizing your schedule in seconds"
+      subtitle="Two minutes now, and the rest of the term is laid out."
+      aside={
+        <AuthAsideList
+          items={[
+            "Import from Schoology or Ion — no retyping.",
+            "Study blocks sized to what's actually due.",
+            "Free, and no card required.",
+          ]}
+        />
+      }
     >
       <GoogleSignInButton onError={(msg) => setError(msg)} />
 
-      <div className="relative my-4">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">or</span>
-        </div>
-      </div>
+      <AuthDivider />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
@@ -104,13 +106,15 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-ink-1"
               tabIndex={-1}
             >
               {showPassword ? (
-                <EyeOff className="h-4 w-4" />
+                <EyeOff className="h-4 w-4" aria-hidden="true" />
               ) : (
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -134,15 +138,15 @@ export default function SignupPage() {
             type="checkbox"
             checked={agreedToTerms}
             onChange={(e) => setAgreedToTerms(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-border bg-muted accent-primary cursor-pointer"
+            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border accent-primary"
           />
-          <span className="text-sm text-muted-foreground leading-snug">
+          <span className="text-sm leading-snug text-ink-3">
             I agree to the{" "}
-            <span className="text-foreground underline underline-offset-2 decoration-border hover:decoration-primary transition-colors">
+            <span className="text-ink-1 underline decoration-ink-4 underline-offset-4 transition-colors hover:decoration-primary">
               Terms of Service
             </span>{" "}
             and{" "}
-            <span className="text-foreground underline underline-offset-2 decoration-border hover:decoration-primary transition-colors">
+            <span className="text-ink-1 underline decoration-ink-4 underline-offset-4 transition-colors hover:decoration-primary">
               Privacy Policy
             </span>
           </span>
@@ -165,11 +169,11 @@ export default function SignupPage() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted-foreground">
+      <p className="mt-8 border-t border-[hsl(var(--rule))] pt-6 text-sm text-ink-3">
         Already have an account?{" "}
         <Link
           to="/login"
-          className="text-primary font-medium hover:underline underline-offset-2"
+          className="rounded-sm font-medium text-primary underline decoration-primary/40 underline-offset-4 transition-colors hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           Log in
         </Link>

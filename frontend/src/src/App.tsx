@@ -9,9 +9,9 @@ import ScrapeJobBanner from "@/components/ScrapeJobBanner";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
-import GradesPage from "@/pages/GradesPage";
 import DashboardPage from "@/pages/DashboardPage";
 import TodayPage from "@/pages/TodayPage";
+import ECPlanPage from "@/pages/ECPlanPage";
 import OnboardingModal, { isOnboarded, markOnboarded } from "@/components/OnboardingModal";
 import { api } from "@/lib/api";
 
@@ -105,10 +105,10 @@ export function App() {
             }
           />
           <Route
-            path="/grades"
+            path="/plan"
             element={
               <ProtectedRoute>
-                <GradesPage />
+                <ECPlanPage />
               </ProtectedRoute>
             }
           />
